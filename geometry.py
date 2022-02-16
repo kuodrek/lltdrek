@@ -113,6 +113,7 @@ def generate_mesh(Wing: models.Wing):
     print(b_partitions)
     print(N_partitions)
 
+# Teste
 b = np.array([3, 2, 1])
 asa = models.Wing(b, 0, 0, 0, 0, 0)
 generate_mesh(asa)
