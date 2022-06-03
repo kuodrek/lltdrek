@@ -1,5 +1,3 @@
-from distutils.log import error
-from re import X
 import numpy as np
 import math
 import models
