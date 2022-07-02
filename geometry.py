@@ -1,117 +1,66 @@
 import numpy as np
 import math
 import models
+import matplotlib.pyplot as plt
+
+
+def get_span_distribution(n, span_partition):
+    vertice_points = np.zeros(n + 1)
+    collocation_points = np.zeros(n)
+    for i in range(n):
+        vertice_points[i] = span_partition * 1 / 2 * (1 - np.cos((i * np.pi / n)))
+        collocation_points[i] = span_partition * 1 / 2 * (1 - np.cos((i * np.pi / n) - (np.pi / (2 * n))))
+    vertice_points[i + 1] = span_partition * 1 / 2 * (1 - np.cos(((i + 1) * np.pi / n)))
+    span_distribution = {
+        'vertice_points': vertice_points,
+        'collocation_points': collocation_points
+    }
+    return span_distribution
+
 
 def generate_mesh(Wing: models.Wing):
     # Inicialização das variáveis
     N_panels = Wing.N_panels
-    b_array = Wing.b
-    b_abs = sum(b_array)
-    c_array = Wing.c
-    offsets_array = Wing.offsets
-    dihedrals_array = Wing.dihedrals
+    spans = Wing.spans
+    total_span = sum(spans)
+    chords = Wing.chords
+    offsets = Wing.offsets
+    dihedral_angles = Wing.dihedral_angles
 
     # Distribuição dos paineis por partição
-    b_partitions = b_array / b_abs * N_panels
-    b_partitions = [math.ceil(int(i)) for i in b_partitions]
+    span_panels_distribution = spans / total_span * N_panels
+    span_panels_distribution = [math.ceil(int(i)) for i in span_panels_distribution]
     # Adicionar mais um painel por conta dos arredondamentos
-    if sum(b_partitions) == N_panels - 1: b_partitions[0] += 1
+    if sum(span_panels_distribution) == N_panels - 1:
+        span_panels_distribution[0] += 1
 
     # Distribuição dos pontos de colocação e vértices
-    N_partitions = len(b_array)
-    collocation_points = np.array(np.zeros((N_panels, 3)))
-    vertices = np.array(np.zeros((N_panels + 1, 3)))
+    N_partitions = len(spans)
+    
+    for i, span_partition in enumerate(spans):
+        n = span_panels_distribution[i]
+        span_distribution = get_span_distribution(n, span_partition)
+        y_cp = np.ones(n)
+        y_vp = np.zeros(n+1)
+        collocation_points = span_distribution['collocation_points']
+        vertice_points = span_distribution['vertice_points']
+        plt.scatter(collocation_points, y_cp)
+        plt.scatter(vertice_points, y_vp)
+        plt.show()
+        print(span_distribution)
 
-    XYZ = np.array(np.zeros(N_partitions))
-    XYZ_aux = [0, 0, 0]
-    for i in range(N_partitions):
-        XYZ[i][0] = 0.25*c_array[i+1] + offsets_array[i]
-        XYZ[i][1] = XYZ_aux[1] + b_partitions[i] * np.cos(dihedrals_array * np.pi / 180)
-        XYZ[i][2] = XYZ_aux[2] + np.tan(dihedrals_array * np.pi / 180) * b_partitions[i]
-        XYZ_aux = XYZ[i][:]
-
-    iter_auxX = 0
-    iter_auxY = 0
-    for i in range(N_partitions):
-        if i == 1:
-            X12 = [XYZ[i][0]- 0.25*c_array[i], XYZ[i][1], XYZ[i][2]]
-            X1 = [0.25*c_array[i], 0, 0]
-        else:
-            X12 = [XYZ[i][0] - XYZ[i-1][0], XYZ[i][1] - XYZ[i-1][1], XYZ[i][2] - XYZ[i-1][2]]
-            X1 = [XYZ[i-1][0], XYZ[i-1][1], XYZ[i-1][2]]
-        
-        if Wing.panels_distr == 'cosine':
-            aspace1 = np.arange(0, np.pi, np.pi / b_partitions[i])
-            aspace2 = np.arange(np.pi / (2 * b_partitions[i]), np.pi / b_partitions[i], np.pi - np.pi / (2 * b_partitions[i]))
-            Lspace = (1 - np.cos(aspace1)) / 2
-            Mspace = (1 - np.cos(aspace2)) / 2
-
-            LspaceXZ = np.linspace(0, 1, b_partitions[i] + 1)
-            MspaceXZ = np.zeros((1, b_partitions[i]))
-
-            for j in range(aspace2):
-                MspaceXZ[j] = (LspaceXZ[j] + LspaceXZ[j+1]) / 2
-
-            X = np.zeros((b_partitions[i] + 1, 3))
-            Y = np.zeros((b_partitions[i], 3))
-
-            for k in range(aspace1):
-                X[k][0] = X1[0] + LspaceXZ[k] * X12[0]
-                X[k][1] = X1[1] + Lspace[k] * X12[1]
-                X[k][2] = X1[2] + LspaceXZ[k] * X12[2]
-
-            for k in range(aspace2):
-                Y[k][0] = X1[0] + MspaceXZ[k] * X12[0]
-                Y[k][1] = X1[1] + Mspace[k] * X12[1]
-                Y[k][2] = X1[2] + MspaceXZ[k] * X12[2]
-
-        elif Wing.panels_distr == 'linear':
-            aspace1 = np.linspace(0, 1, b_partitions[i] + 1)
-            aspace2 = np.zeros((1, b_partitions[i]))
-
-            for j in range(aspace2):
-                aspace2[j] = (aspace1[j] + aspace1[j + 1]) / 2
-            
-            Lspace = aspace1
-            Mspace = aspace2
-
-            X = np.zeros((b_partitions[i]+1, 3))
-            Y = np.zeros((b_partitions[i], 3))
-
-            for k in range(aspace1):
-                X[k][0] = X1[0] + LspaceXZ[k] * X12[0]
-                X[k][1] = X1[1] + Lspace[k] * X12[1]
-                X[k][2] = X1[2] + LspaceXZ[k] * X12[2]
-
-            for k in range(aspace2):
-                Y[k][0] = X1[0] + MspaceXZ[k] * X12[0]
-                Y[k][1] = X1[1] + Mspace[k] * X12[1]
-                Y[k][2] = X1[2] + MspaceXZ[k] * X12[2]
-
-        else:
-            raise ValueError("Valor inválido em Wing.panels_distr: Esperava-se 'linear' ou 'cosine'")
-
-        for j in range(X):
-            vertices[iter_auxX][0] = X[j][0]
-            vertices[iter_auxX][1] = X[j][1]
-            vertices[iter_auxX][2] = X[j][2]
-            iter_auxX += 1
-
-        for j in range(Y):
-            vertices[iter_auxY][0] = X[j][0]
-            vertices[iter_auxY][1] = X[j][1]
-            vertices[iter_auxY][2] = X[j][2]
-            iter_auxY += 1
-
-
-
-
-
-
-    print(b_partitions)
-    print(N_partitions)
+   
 
 # Teste
-b = np.array([3, 2, 1])
-asa = models.Wing(b, 0, 0, 0, 0, 0)
+b = np.array([3])
+asa = models.Wing(
+    spans=b,
+    chords=0,
+    offsets=0,
+    twist_angles=0,
+    dihedral_angles=0,
+    airfoils=0,
+    N_panels=20,
+    panels_distribution="cosine",
+)
 generate_mesh(asa)
