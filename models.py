@@ -1,4 +1,4 @@
-'''
+"""
 inputs iniciais
 ASA
 Vetor de envergaduras - b
@@ -22,30 +22,41 @@ SIMULACAO
 Fator de amortecimento - damp
 Fator de convergencia - R
 Numero de iteracoes - max_iter
-'''
+"""
 
-class Wing():
-    def __init__(self, b, c, offsets, tw_angles, dihedrals, airfoils, N_panels = 20, panels_distr = 'linear'):
-        Wing.b = b
-        Wing.c = c
+
+class Wing:
+    def __init__(
+        self,
+        spans,
+        chords,
+        offsets,
+        twist_angles,
+        dihedral_angles,
+        airfoils,
+        N_panels=20,
+        panels_distribution="linear",
+    ):
+        Wing.spans = spans
+        Wing.chords = chords
         Wing.offsets = offsets
-        Wing.tw_angles = tw_angles
-        Wing.dihedrals = dihedrals
+        Wing.twist_angles = twist_angles
+        Wing.dihedral_angles = dihedral_angles
         Wing.airfoils = airfoils
         Wing.N_panels = N_panels
-        Wing.panels_distr = panels_distr
+        Wing.panels_distribution = panels_distribution
 
 
-class Flightconditions():
-    def __init__(self, Vinf, nu, rho, h = 0):
-            Flightconditions.Vinf = Vinf
-            Flightconditions.nu = nu
-            Flightconditions.rho = rho
-            Flightconditions.h = h
+class Flightconditions:
+    def __init__(self, Vinf, nu, rho, h=0):
+        Flightconditions.Vinf = Vinf
+        Flightconditions.nu = nu
+        Flightconditions.rho = rho
+        Flightconditions.h = h
 
 
-class Simulation():
-    def __init__(self, damp = 0.7, max_iter = 1000, convergence = 0.001):
+class Simulation:
+    def __init__(self, damp=0.7, max_iter=1000, residual_value=0.001):
         Simulation.damp = damp
         Simulation.max_iter = max_iter
-        Simulation.convergence = convergence
+        Simulation.residual_value = residual_value
