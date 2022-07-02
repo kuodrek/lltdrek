@@ -29,7 +29,7 @@ class Wing():
         Wing.b = b
         Wing.c = c
         Wing.offsets = offsets
-        Wing.twangles = tw_angles
+        Wing.tw_angles = tw_angles
         Wing.dihedrals = dihedrals
         Wing.airfoils = airfoils
         Wing.N_panels = N_panels
