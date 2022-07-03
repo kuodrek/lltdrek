@@ -35,7 +35,7 @@ class Wing:
         dihedral_angles,
         airfoils,
         N_panels=20,
-        panels_distribution="linear",
+        distribution_type="linear",
     ):
         Wing.spans = spans
         Wing.chords = chords
@@ -44,7 +44,7 @@ class Wing:
         Wing.dihedral_angles = dihedral_angles
         Wing.airfoils = airfoils
         Wing.N_panels = N_panels
-        Wing.panels_distribution = panels_distribution
+        Wing.distribution_type = distribution_type
 
 
 class Flightconditions:
