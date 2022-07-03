@@ -8,16 +8,16 @@ def get_span_distribution(n, span_partition, distribution_type):
     vertice_points = np.zeros(n + 1)
     collocation_points = np.zeros(n)
 
-    if distribution_type == 'cosine':
-        vertice_points[0] = span_partition * 1 / 2 * (1 - np.cos(0))
-        for i in range(n):
+    vertice_points[0] = span_partition * 1 / 2 * (1 - np.cos(0)) # Note that this is = 0
+    for i in range(n):
+        # Y component of points
+        if distribution_type == 'cosine':
             vertice_points[i+1] = span_partition * 1 / 2 * (1 - np.cos(((i+1) * np.pi / n)))
             collocation_points[i] = span_partition * 1 / 2 * (1 - np.cos(((i+1) * np.pi / n) - (np.pi / (2 * n))))
-    elif distribution_type == 'linear':
-        vertice_points[0] = 0
-        for i in range(n):
+        elif distribution_type == 'linear':
             vertice_points[i+1] = span_partition * ((i+1)/n)
-            collocation_points[i] = span_partition * ((i)/n + (i+1)/n) * 1 / 2
+            collocation_points[i] = span_partition * ((i)/n + (i+1)/n) * 1 / 2         
+        else: raise Exception("Invalid 'distribution_type' value. Expected 'cosine' or 'linear'.")
     
     span_distribution = {
         'vertice_points': vertice_points,
@@ -47,14 +47,18 @@ def generate_mesh(Wing: models.Wing):
     collocation_points = np.zeros([N_panels,3])
     vertice_points = np.zeros([N_panels+1,3])
 
+    # Componente no eixo X dos pontos
+
+
+    # Componente no eixo Y dos pontos
     idx_i = 0
     span_incremental = 0
-
     # Vetores para verificação, remover depois
     vp_teste = []
     cp_teste = []
     for i, span_partition in enumerate(spans):
         n = span_panels_distribution[i]
+
         span_distribution = get_span_distribution(n, span_partition, distribution_type)
         collocation_points_partition = span_distribution['collocation_points']
         vertice_points_partition = span_distribution['vertice_points']
@@ -66,9 +70,9 @@ def generate_mesh(Wing: models.Wing):
             collocation_points[idx_i+j][1] = span_incremental + collocation_points_partition[j]
             vertice_points[idx_i+j][1] = span_incremental + vertice_points_partition[j]
         vertice_points[idx_i+j+1][1] = span_incremental + vertice_points_partition[-1]
+
         idx_i += n
         span_incremental += spans[i]
-    print(collocation_points)
 
    
 
@@ -82,6 +86,6 @@ asa = models.Wing(
     dihedral_angles=0,
     airfoils=0,
     N_panels=13,
-    distribution_type="linear",
+    distribution_type="cosine",
 )
 generate_mesh(asa)
