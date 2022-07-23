@@ -33,8 +33,8 @@ def get_span_y_distr(n, span_partition, distribution_type):
 
 def get_span_x_distr(cp_y_component, vp_y_component, chord_i, chord_ii, offset_i, offset_ii, span_partition):
     n = len(cp_y_component)
-    cp_x_component = np.zeros(n+1)
-    vp_x_component = np.zeros(n)
+    vp_x_component = np.zeros(n+1)
+    cp_x_component = np.zeros(n)
 
     vp_x_component[0] = \
     0.25*(chord_ii - chord_i)/(span_partition) * (vp_y_component[0]-0.25*chord_i) + 0.25*chord_i + \
@@ -57,12 +57,12 @@ def get_span_x_distr(cp_y_component, vp_y_component, chord_i, chord_ii, offset_i
 
 def get_span_z_distr(cp_y_component, vp_y_component, dihedral_angle_i,height_i):
     n = len(cp_y_component)
-    cp_z_component = np.zeros(n+1)
-    vp_z_component = np.zeros(n)
+    vp_z_component = np.zeros(n+1)
+    cp_z_component = np.zeros(n) 
 
     vp_z_component[0] = np.tan(dihedral_angle_i) * vp_y_component[0]
     for i in range(n):
-        vp_z_component[i+1] = np.tan(dihedral_angle_i) * vp_y_component[i] + height_i
+        vp_z_component[i+1] = np.tan(dihedral_angle_i) * vp_y_component[i+1] + height_i
         cp_z_component[i] = np.tan(dihedral_angle_i) * cp_y_component[i] + height_i
     
     span_z_distribution = {
@@ -71,17 +71,29 @@ def get_span_z_distr(cp_y_component, vp_y_component, dihedral_angle_i,height_i):
     }
     return span_z_distribution
 
+def plot_points(collocation_points, vertice_points):
+    figure, axis = plt.subplots(1, 2)
+    axis[0].scatter(vertice_points[:,1], vertice_points[:,0], label='vertices')
+    axis[0].scatter(collocation_points[:,1], collocation_points[:,0], label='collocation points')
+    axis[0].set_title("X x Y")
+    axis[0].legend(loc='best')
+    # For Cosine Function
+    axis[1].scatter(vertice_points[:,1], vertice_points[:,2], label='vertices')
+    axis[1].scatter(collocation_points[:,1], collocation_points[:,2], label='collocation points')
+    axis[1].set_title("Z x Y")
+    axis[1].legend(loc='best')
+    plt.show()
 
 def generate_mesh(Wing: models.Wing):
     # Inicialização das variáveis
     N_panels = Wing.N_panels
     spans = Wing.spans
-    total_span = sum(spans)
     chords = Wing.chords
     offsets = Wing.offsets
     dihedral_angles = Wing.dihedral_angles
     distribution_type = Wing.distribution_type
 
+    total_span = sum(spans)
     # Distribuição dos paineis por partição
     span_panels_distribution = spans / total_span * N_panels
     span_panels_distribution = [math.ceil(int(i)) for i in span_panels_distribution]
@@ -115,7 +127,7 @@ def generate_mesh(Wing: models.Wing):
         cp_x_component = span_x_distr['collocation_points']
         vp_x_component = span_x_distr['vertice_points']
 
-        span_z_distr = get_span_z_distr(cp_y_component,vp_y_component,dihedral_i,span_partition)
+        span_z_distr = get_span_z_distr(cp_y_component,vp_y_component,dihedral_i,height_incremental)
         cp_z_component = span_z_distr['collocation_points']
         vp_z_component = span_z_distr['vertice_points']
 
@@ -131,22 +143,24 @@ def generate_mesh(Wing: models.Wing):
             vertice_points[idx_i+j][2] = height_incremental + vp_z_component[j]
         vertice_points[idx_i+j+1][1] = span_incremental + vp_y_component[-1]
         vertice_points[idx_i+j+1][0] = offset_incremental + vp_x_component[-1]
-        vertice_points[idx_i+j+1][3] = height_incremental + vp_z_component[-1]
+        vertice_points[idx_i+j+1][2] = height_incremental + vp_z_component[-1]
 
         idx_i += n
         span_incremental += spans[i]
         offset_incremental += offsets[i]
-        # height_incremental += vp_z_component[-1]
+        height_incremental += vp_z_component[-1]
 
+    plot_points(collocation_points, vertice_points)
+    aaa=1
 
 # Teste
 b = np.array([3, 2, 1])
 asa = models.Wing(
     spans=b,
-    chords=0,
+    chords=[1, 0.8, 0.5, 0.4],
     offsets=[0, 0, 0, 0],
     twist_angles=[0, 0, 0, 0],
-    dihedral_angles=[0, 0, 0],
+    dihedral_angles=[10, 15, 30],
     airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2', 'optfoilb2'],
     N_panels=20,
     distribution_type="cosine",
