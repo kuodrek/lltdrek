@@ -31,21 +31,22 @@ def get_span_y_distr(n, span_partition, distribution_type):
     return span_y_distribution
 
 
-def get_span_x_distr(n, cp_y_component, vp_y_component, chord_i, chord_f, offset_i, offset_f, span_partition):
+def get_span_x_distr(cp_y_component, vp_y_component, chord_i, chord_ii, offset_i, offset_ii, span_partition):
+    n = len(cp_y_component)
     cp_x_component = np.zeros(n+1)
     vp_x_component = np.zeros(n)
 
     vp_x_component[0] = \
-    0.25*(chord_f - chord_i)/(span_partition) * (vp_y_component[0]-0.25*chord_i) + 0.25*chord_i + \
-    (offset_f - offset_i)/(span_partition) * (vp_y_component[0]-offset_i) + offset_i
+    0.25*(chord_ii - chord_i)/(span_partition) * (vp_y_component[0]-0.25*chord_i) + 0.25*chord_i + \
+    (offset_ii - offset_i)/(span_partition) * (vp_y_component[0]-offset_i) + offset_i
     for i in range(n):
         vp_x_component[i+1] = \
-        0.25*(chord_f - chord_i)/(span_partition) * (vp_y_component[i+1]-0.25*chord_i) + 0.25*chord_i + \
-        (offset_f - offset_i)/(span_partition) * (vp_y_component[i+1]-offset_i) + offset_i
+        0.25*(chord_ii - chord_i)/(span_partition) * (vp_y_component[i+1]-0.25*chord_i) + 0.25*chord_i + \
+        (offset_ii - offset_i)/(span_partition) * (vp_y_component[i+1]-offset_i) + offset_i
 
         cp_x_component[i] = \
-        0.25*(chord_f - chord_i)/(span_partition) * (cp_y_component[i]-0.25*chord_i) + 0.25*chord_i + \
-        (offset_f - offset_i)/(span_partition) * (cp_y_component[i]-offset_i) + offset_i
+        0.25*(chord_ii - chord_i)/(span_partition) * (cp_y_component[i]-0.25*chord_i) + 0.25*chord_i + \
+        (offset_ii - offset_i)/(span_partition) * (cp_y_component[i]-offset_i) + offset_i
     
     span_x_distribution = {
         'vertice_points': vp_x_component,
@@ -54,8 +55,21 @@ def get_span_x_distr(n, cp_y_component, vp_y_component, chord_i, chord_f, offset
     return span_x_distribution
 
 
-def get_span_z_distr():
-    pass
+def get_span_z_distr(cp_y_component, vp_y_component, dihedral_angle_i,height_i):
+    n = len(cp_y_component)
+    cp_z_component = np.zeros(n+1)
+    vp_z_component = np.zeros(n)
+
+    vp_z_component[0] = np.tan(dihedral_angle_i) * vp_y_component[0]
+    for i in range(n):
+        vp_z_component[i+1] = np.tan(dihedral_angle_i) * vp_y_component[i] + height_i
+        cp_z_component[i] = np.tan(dihedral_angle_i) * cp_y_component[i] + height_i
+    
+    span_z_distribution = {
+        'vertice_points': vp_z_component,
+        'collocation_points': cp_z_component
+    }
+    return span_z_distribution
 
 
 def generate_mesh(Wing: models.Wing):
@@ -85,25 +99,25 @@ def generate_mesh(Wing: models.Wing):
     span_incremental = 0
     offset_incremental = 0
     height_incremental = 0
-    # Vetores para verificação, remover depois
     for i, span_partition in enumerate(spans):
         n = span_panels_distribution[i]
-        chord_i = 1
-        chord_f = 2
-        offset_i = 1
-        offset_f = 2
+        chord_i = chords[i]
+        chord_ii = chords[i+1]
+        offset_i = offsets[i]
+        offset_ii = offsets[i+1]
+        dihedral_i = dihedral_angles[i]
 
         span_y_distr = get_span_y_distr(n, span_partition, distribution_type)
         cp_y_component = span_y_distr['collocation_points']
         vp_y_component = span_y_distr['vertice_points']
 
-        span_x_distr = get_span_x_distr(n,cp_y_component,vp_y_component,chord_i,chord_f,offset_i,offset_f,span_partition)
+        span_x_distr = get_span_x_distr(cp_y_component,vp_y_component,chord_i,chord_ii,offset_i,offset_ii,span_partition)
         cp_x_component = span_x_distr['collocation_points']
         vp_x_component = span_x_distr['vertice_points']
 
-        # span_z_distr = get_span_z_distr(n,cp_y_component,vp_y_component,dihedral_i,dihedral_f,span_partition)
-        # cp_z_component = span_z_distr['collocation_points']
-        # vp_z_component = span_z_distr['vertice_points']
+        span_z_distr = get_span_z_distr(cp_y_component,vp_y_component,dihedral_i,span_partition)
+        cp_z_component = span_z_distr['collocation_points']
+        vp_z_component = span_z_distr['vertice_points']
 
         for j, _ in enumerate(cp_y_component):
             # Componente Y dos CP / VP
@@ -113,12 +127,16 @@ def generate_mesh(Wing: models.Wing):
             collocation_points[idx_i+j][0] = offset_incremental + cp_x_component[j]
             vertice_points[idx_i+j][0] = offset_incremental + vp_x_component[j]
             # Componente Z
+            collocation_points[idx_i+j][2] = height_incremental + cp_z_component[j]
+            vertice_points[idx_i+j][2] = height_incremental + vp_z_component[j]
         vertice_points[idx_i+j+1][1] = span_incremental + vp_y_component[-1]
         vertice_points[idx_i+j+1][0] = offset_incremental + vp_x_component[-1]
+        vertice_points[idx_i+j+1][3] = height_incremental + vp_z_component[-1]
 
         idx_i += n
         span_incremental += spans[i]
         offset_incremental += offsets[i]
+        # height_incremental += vp_z_component[-1]
 
 
 # Teste
@@ -126,11 +144,11 @@ b = np.array([3, 2, 1])
 asa = models.Wing(
     spans=b,
     chords=0,
-    offsets=0,
-    twist_angles=0,
-    dihedral_angles=0,
-    airfoils=0,
-    N_panels=13,
+    offsets=[0, 0, 0, 0],
+    twist_angles=[0, 0, 0, 0],
+    dihedral_angles=[0, 0, 0],
+    airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2', 'optfoilb2'],
+    N_panels=20,
     distribution_type="cosine",
 )
 generate_mesh(asa)
