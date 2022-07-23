@@ -1,4 +1,5 @@
 __pycache__
 venv/
+airfoils/
+teste.py
 .env
-llt_drek_monoplano/*
