@@ -1,3 +1,5 @@
+import numpy as np
+
 """
 inputs iniciais
 ASA
@@ -40,8 +42,8 @@ class Wing:
         Wing.spans = spans
         Wing.chords = chords
         Wing.offsets = offsets
-        Wing.twist_angles = twist_angles
-        Wing.dihedral_angles = dihedral_angles
+        Wing.twist_angles = [angle * np.pi / 180 for angle in twist_angles]
+        Wing.dihedral_angles = [angle * np.pi / 180 for angle in dihedral_angles]
         Wing.airfoils = airfoils
         Wing.N_panels = N_panels
         Wing.distribution_type = distribution_type
