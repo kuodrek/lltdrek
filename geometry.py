@@ -105,10 +105,9 @@ def generate_mesh(Wing: models.Wing):
 
     # Distribuição dos pontos de colocação e vértices
     collocation_points = np.zeros([N_panels, 3])
-    vertice_points = np.zeros([N_panels+1, 3])
+    vertice_points = np.zeros([N_panels + 1, 3])
 
     # Componente no eixo X dos pontos
-
     idx_i = 0
     span_incremental = 0
     offset_incremental = offsets[0] # This value should normally be 0
@@ -149,7 +148,7 @@ def generate_mesh(Wing: models.Wing):
 
         idx_i += n
         span_incremental += span_partition
-        # offset_incremental += offset_ii + 0.25*chord_ii
+        offset_incremental += offset_i + 0.25*chord_i
         height_incremental += vp_z_component[-1]
 
     plot_points(collocation_points, vertice_points)
@@ -157,14 +156,14 @@ def generate_mesh(Wing: models.Wing):
 
 
 # Teste
-b = np.array([3, 2, 1])
+b = np.array([3, 2])
 asa = models.Wing(
     spans=b,
-    chords=[1, 0.8, 0.5, 0.4],
-    offsets=[0, 0, 0, 0],
-    twist_angles=[0, 0, 0, 0],
-    dihedral_angles=[10, 15, 30],
-    airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2', 'optfoilb2'],
+    chords=[1, 1, 1],
+    offsets=[0, 0, 0],
+    twist_angles=[0, 0, 0],
+    dihedral_angles=[10, 15],
+    airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2'],
     N_panels=10,
     distribution_type="cosine",
 )
