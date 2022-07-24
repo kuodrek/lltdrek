@@ -4,6 +4,20 @@ import models
 import matplotlib.pyplot as plt
 
 
+def plot_points(collocation_points, vertice_points):
+    figure, axis = plt.subplots(1, 2)
+    axis[0].scatter(vertice_points[:,1], vertice_points[:,0], label='vertices')
+    axis[0].scatter(collocation_points[:,1], collocation_points[:,0], label='collocation points')
+    axis[0].set_title("X x Y")
+    axis[0].legend(loc='best')
+    # For Cosine Function
+    axis[1].scatter(vertice_points[:,1], vertice_points[:,2], label='vertices')
+    axis[1].scatter(collocation_points[:,1], collocation_points[:,2], label='collocation points')
+    axis[1].set_title("Z x Y")
+    axis[1].legend(loc='best')
+    plt.show()
+
+
 def get_span_y_distr(n, span_partition, distribution_type):
     vertice_points = np.zeros(n + 1)
     collocation_points = np.zeros(n)
@@ -37,16 +51,16 @@ def get_span_x_distr(cp_y_component, vp_y_component, chord_i, chord_ii, offset_i
     cp_x_component = np.zeros(n)
 
     vp_x_component[0] = \
-    0.25*(chord_ii - chord_i)/(span_partition) * (vp_y_component[0]-0.25*chord_i) + 0.25*chord_i + \
-    (offset_ii - offset_i)/(span_partition) * (vp_y_component[0]-offset_i) + offset_i
+    0.25*(chord_ii - chord_i) * vp_y_component[0] + \
+    (offset_ii - offset_i) * vp_y_component[0]
     for i in range(n):
         vp_x_component[i+1] = \
-        0.25*(chord_ii - chord_i)/(span_partition) * (vp_y_component[i+1]-0.25*chord_i) + 0.25*chord_i + \
-        (offset_ii - offset_i)/(span_partition) * (vp_y_component[i+1]-offset_i) + offset_i
+        0.25*(chord_ii - chord_i) * vp_y_component[i+1] + \
+        (offset_ii - offset_i) * vp_y_component[i+1]
 
         cp_x_component[i] = \
-        0.25*(chord_ii - chord_i)/(span_partition) * (cp_y_component[i]-0.25*chord_i) + 0.25*chord_i + \
-        (offset_ii - offset_i)/(span_partition) * (cp_y_component[i]-offset_i) + offset_i
+        0.25*(chord_ii - chord_i) * cp_y_component[i] + \
+        (offset_ii - offset_i) * cp_y_component[i]
     
     span_x_distribution = {
         'vertice_points': vp_x_component,
@@ -62,8 +76,8 @@ def get_span_z_distr(cp_y_component, vp_y_component, dihedral_angle_i,height_i):
 
     vp_z_component[0] = np.tan(dihedral_angle_i) * vp_y_component[0]
     for i in range(n):
-        vp_z_component[i+1] = np.tan(dihedral_angle_i) * vp_y_component[i+1] + height_i
-        cp_z_component[i] = np.tan(dihedral_angle_i) * cp_y_component[i] + height_i
+        vp_z_component[i+1] = np.tan(dihedral_angle_i) * vp_y_component[i+1]
+        cp_z_component[i] = np.tan(dihedral_angle_i) * cp_y_component[i]
     
     span_z_distribution = {
         'vertice_points': vp_z_component,
@@ -71,18 +85,6 @@ def get_span_z_distr(cp_y_component, vp_y_component, dihedral_angle_i,height_i):
     }
     return span_z_distribution
 
-def plot_points(collocation_points, vertice_points):
-    figure, axis = plt.subplots(1, 2)
-    axis[0].scatter(vertice_points[:,1], vertice_points[:,0], label='vertices')
-    axis[0].scatter(collocation_points[:,1], collocation_points[:,0], label='collocation points')
-    axis[0].set_title("X x Y")
-    axis[0].legend(loc='best')
-    # For Cosine Function
-    axis[1].scatter(vertice_points[:,1], vertice_points[:,2], label='vertices')
-    axis[1].scatter(collocation_points[:,1], collocation_points[:,2], label='collocation points')
-    axis[1].set_title("Z x Y")
-    axis[1].legend(loc='best')
-    plt.show()
 
 def generate_mesh(Wing: models.Wing):
     # Inicialização das variáveis
@@ -109,7 +111,7 @@ def generate_mesh(Wing: models.Wing):
 
     idx_i = 0
     span_incremental = 0
-    offset_incremental = 0
+    offset_incremental = offsets[0] # This value should normally be 0
     height_incremental = 0
     for i, span_partition in enumerate(spans):
         n = span_panels_distribution[i]
@@ -146,12 +148,13 @@ def generate_mesh(Wing: models.Wing):
         vertice_points[idx_i+j+1][2] = height_incremental + vp_z_component[-1]
 
         idx_i += n
-        span_incremental += spans[i]
-        offset_incremental += offsets[i]
+        span_incremental += span_partition
+        # offset_incremental += offset_ii + 0.25*chord_ii
         height_incremental += vp_z_component[-1]
 
     plot_points(collocation_points, vertice_points)
     aaa=1
+
 
 # Teste
 b = np.array([3, 2, 1])
@@ -162,7 +165,7 @@ asa = models.Wing(
     twist_angles=[0, 0, 0, 0],
     dihedral_angles=[10, 15, 30],
     airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2', 'optfoilb2'],
-    N_panels=20,
+    N_panels=10,
     distribution_type="cosine",
 )
 generate_mesh(asa)
