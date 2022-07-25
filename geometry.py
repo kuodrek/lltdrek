@@ -99,6 +99,9 @@ def get_twist_distr(cp_y_component, twist_i, twist_ii, span_partition):
     return span_twist_distribution
 
 
+def get_local_chord(y, chord_i, chord_ii, span_partition):
+    return (chord_ii - chord_i) / span_partition * y + chord_i
+
 def get_euler_matrix(dihedral, twist, sweep):
     # Utilizando-se rotação ZYX -> Ângulos de Tait-Bryan
     # REFERÊNCIA: https://en.wikipedia.org/wiki/Euler_angles#Conversion_to_other_orientation_representations
@@ -112,7 +115,7 @@ def get_euler_matrix(dihedral, twist, sweep):
         [c1*c2, c1*s2*s3-c3*s1, s1*s3+c1*c3*s2],
         [c2*s1, c1*c3+s1*s2*s3, c3*s1*s2-c1*s3],
         [-s2, c2*s3, c2*c3]
-        ])
+        ], dtype='float32')
     return euler_matrix
 
 
@@ -124,7 +127,9 @@ def generate_mesh(Wing: models.Wing):
     offsets = Wing.offsets
     twist_angles = Wing.twist_angles
     dihedral_angles = Wing.dihedral_angles
+    airfoils = Wing.airfoils
     distribution_type = Wing.distribution_type
+    sweep_check = Wing.sweep_check
 
     total_span = sum(spans)
     # Número de painéis por partição
@@ -149,12 +154,13 @@ def generate_mesh(Wing: models.Wing):
 
     # Distribuição de informações geométricas gerais dos pontos de colocação
     cp_areas = np.zeros(N_panels) # Área de cada painel
+    cp_chords = np.zeros(N_panels) # Distribuição de cordas dos pontos de colocação
     cp_mac = np.zeros(N_panels) # Corda média aerodinâmica de cada painel
     cp_reynolds = np.zeros(N_panels) # Número de Reynolds de cada painel
     cp_airfoil = np.zeros(N_panels) # Perfil de cada painel
 
     # Explicar estas variáveis
-    idx_i = 0
+    idx_n = 0
     span_incremental = 0
     height_incremental = 0
     for i, span_partition in enumerate(spans):
@@ -166,8 +172,10 @@ def generate_mesh(Wing: models.Wing):
         twist_i = twist_angles[i]
         twist_ii = twist_angles[i+1]
         dihedral_partition = dihedral_angles[i]
+        airfoil_i = airfoils[i]
+        airfoil_ii = airfoils[i+1]
         # Ângulo de enflechamento [rad] da partição atual
-        sweep_partition = np.arctan( (0.25*chord_ii - 0.25*chord_i + offset_i)/span_partition )
+        sweep_partition = np.arctan( (0.25*chord_ii - 0.25*chord_i + offset_i)/span_partition ) if sweep_check is True else 0
 
         span_y_distr = get_span_y_distr(n, span_partition, distribution_type)
         cp_y_component = span_y_distr['collocation_points']
@@ -183,36 +191,41 @@ def generate_mesh(Wing: models.Wing):
 
         cp_twist_distr = get_twist_distr(cp_y_component, twist_i, twist_ii, span_partition)
 
+        vertice_points[0][1] = span_incremental + vp_y_component[-1]
+        vertice_points[0][0] = vp_x_component[-1]
+        vertice_points[0][2] = height_incremental + vp_z_component[-1]
         for j, _ in enumerate(cp_y_component):
             # Componente Y dos CP / VP
-            collocation_points[idx_i+j][1] = span_incremental + cp_y_component[j]
-            vertice_points[idx_i+j][1] = span_incremental + vp_y_component[j]
+            vertice_points[idx_n+j+1][1] = span_incremental + vp_y_component[j+1]
+            collocation_points[idx_n+j][1] = span_incremental + cp_y_component[j]
             # Componente X
-            collocation_points[idx_i+j][0] = cp_x_component[j]
-            vertice_points[idx_i+j][0] = vp_x_component[j]
+            vertice_points[idx_n+j+1][0] = vp_x_component[j+1]
+            collocation_points[idx_n+j][0] = cp_x_component[j]
             # Componente Z
-            collocation_points[idx_i+j][2] = height_incremental + cp_z_component[j]
-            vertice_points[idx_i+j][2] = height_incremental + vp_z_component[j]
+            vertice_points[idx_n+j+1][2] = height_incremental + vp_z_component[j+1]
+            collocation_points[idx_n+j][2] = height_incremental + cp_z_component[j]
 
-            # Ângulo de torção (twist geométrico) do ponto de colocação
+            # Ângulo de torção (twist geométrico) do ponto de colocação [testar]
             twist_cp = cp_twist_distr[j]
             euler_matrix = get_euler_matrix(dihedral_partition, twist_cp, sweep_partition)
-            u_a[idx_i+j] = euler_matrix.dot(np.array([1, 0, 0]))
-            u_n[idx_i+j] = euler_matrix.dot(np.array([0, 0, 1]))
+            u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
+            u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
 
-            # Implementar:
-            # cp_lengths
-            # cp_dsl
+            for k in range(3): 
+                cp_lengths[idx_n+j][k] = vertice_points[idx_n+j+1][k] - vertice_points[idx_n+j][k]
+                # cp_dsl[idx_n+j][k] = mac * area / cp_lengths[idx_n+j][k]
+            
+            chord_vp_j = get_local_chord(vertice_points[idx_n+j], chord_i, chord_ii, span_partition)
+            chord_vp_jj = get_local_chord(vertice_points[idx_n+j+1], chord_i, chord_ii, span_partition)
+            chord_cp = get_local_chord(collocation_points[idx_n+j], chord_i, chord_ii, span_partition)
+            cp_chords[idx_n+j] = chord_cp
             
             # cp_areas
-            # cp_mac
-            # cp_reynolds
+            cp_mac[idx_n+j] = (2/3)*(chord_vp_j**2 + chord_vp_j*chord_vp_jj + chord_vp_jj**2)/(chord_vp_j + chord_vp_jj)
+            # cp_reynolds[idx_n+j] = chord_cp * Vinf / nu
             # cp_airfoil
-        vertice_points[idx_i+j+1][1] = span_incremental + vp_y_component[-1]
-        vertice_points[idx_i+j+1][0] = vp_x_component[-1]
-        vertice_points[idx_i+j+1][2] = height_incremental + vp_z_component[-1]
 
-        idx_i += n
+        idx_n += n
         span_incremental += span_partition
         height_incremental += vp_z_component[-1]
 
@@ -229,5 +242,6 @@ asa = models.Wing(
     airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2'],
     N_panels=10,
     distribution_type="cosine",
+    sweep_check=False
 )
 generate_mesh(asa)
