@@ -38,6 +38,7 @@ class Wing:
         airfoils,
         N_panels=20,
         distribution_type="linear",
+        sweep_check=False
     ):
         Wing.spans = spans
         Wing.chords = chords
@@ -47,11 +48,12 @@ class Wing:
         Wing.airfoils = airfoils
         Wing.N_panels = N_panels
         Wing.distribution_type = distribution_type
+        Wing.sweep_check = sweep_check
 
 
 class Flightconditions:
-    def __init__(self, Vinf, nu, rho, h=0):
-        Flightconditions.Vinf = Vinf
+    def __init__(self, V_inf, nu, rho, h=0):
+        Flightconditions.V_inf = V_inf
         Flightconditions.nu = nu
         Flightconditions.rho = rho
         Flightconditions.h = h
