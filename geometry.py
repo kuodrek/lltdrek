@@ -133,19 +133,21 @@ def generate_mesh(Wing: models.Wing):
 
     total_span = sum(spans)
     # Número de painéis por partição
-    span_panel_numbers = spans / total_span * N_panels
+    # span_panel_numbers = spans / total_span * N_panels
+    span_panel_numbers = [value / total_span * N_panels for value in spans]
     span_panel_numbers = [math.ceil(int(i)) for i in span_panel_numbers]
     # Adicionar mais um painel por conta dos arredondamentos
     if sum(span_panel_numbers) == N_panels - 1:
         span_panel_numbers[-1] += 1
 
+    partition_areas = np.zeros(len(spans))
     # Distribuição dos pontos de colocação e vértices
     # Note que o ponto de colocação é a representação pontual de um painel
     collocation_points = np.zeros([N_panels, 3])
     vertice_points = np.zeros([N_panels + 1, 3])
 
-    # Distribuição de vetores unitários dos pontos de colocação
-    u_a = np.zeros([N_panels, 3]) # Vetor unitário no sentido da corda
+    # Distribuição de vetores unitários dos pontos de colocação (posição da seção em relação ao escoamento)
+    u_a = np.zeros([N_panels, 3]) # Vetor unitário colinear à corda
     u_n = np.zeros([N_panels, 3]) # Vetor unitário normal à corda
 
     # Distribuição de propriedades geométricas dos painéis da asa
@@ -155,7 +157,7 @@ def generate_mesh(Wing: models.Wing):
     # Distribuição de informações geométricas gerais dos pontos de colocação
     cp_areas = np.zeros(N_panels) # Área de cada painel
     cp_chords = np.zeros(N_panels) # Distribuição de cordas dos pontos de colocação
-    cp_mac = np.zeros(N_panels) # Corda média aerodinâmica de cada painel
+    cp_macs = np.zeros(N_panels) # Corda média aerodinâmica de cada painel
     cp_reynolds = np.zeros(N_panels) # Número de Reynolds de cada painel
     cp_airfoil = np.zeros(N_panels) # Perfil de cada painel
 
@@ -163,6 +165,7 @@ def generate_mesh(Wing: models.Wing):
     idx_n = 0
     span_incremental = 0
     height_incremental = 0
+    MAC = 0
     for i, span_partition in enumerate(spans):
         n = span_panel_numbers[i]
         chord_i = chords[i]
@@ -207,32 +210,54 @@ def generate_mesh(Wing: models.Wing):
 
             # Ângulo de torção (twist geométrico) do ponto de colocação [testar]
             twist_cp = cp_twist_distr[j]
+
+            # Vetores de posicionamento do painel (colinear e perpendicular à corda)
             euler_matrix = get_euler_matrix(dihedral_partition, twist_cp, sweep_partition)
             u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
             u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
 
-            for k in range(3): 
-                cp_lengths[idx_n+j][k] = vertice_points[idx_n+j+1][k] - vertice_points[idx_n+j][k]
-                # cp_dsl[idx_n+j][k] = mac * area / cp_lengths[idx_n+j][k]
-            
-            chord_vp_j = get_local_chord(vertice_points[idx_n+j], chord_i, chord_ii, span_partition)
-            chord_vp_jj = get_local_chord(vertice_points[idx_n+j+1], chord_i, chord_ii, span_partition)
-            chord_cp = get_local_chord(collocation_points[idx_n+j], chord_i, chord_ii, span_partition)
+            chord_vp_j = get_local_chord(vertice_points[idx_n+j][1], chord_i, chord_ii, span_partition)
+            chord_vp_jj = get_local_chord(vertice_points[idx_n+j+1][1], chord_i, chord_ii, span_partition)
+            chord_cp = get_local_chord(collocation_points[idx_n+j][1], chord_i, chord_ii, span_partition)
             cp_chords[idx_n+j] = chord_cp
-            
-            # cp_areas
-            cp_mac[idx_n+j] = (2/3)*(chord_vp_j**2 + chord_vp_j*chord_vp_jj + chord_vp_jj**2)/(chord_vp_j + chord_vp_jj)
-            # cp_reynolds[idx_n+j] = chord_cp * Vinf / nu
-            # cp_airfoil
 
+            # Corda média aerodinâmica  do painel
+            cp_mac = (2/3)*(chord_vp_j ** 2 + chord_vp_j * chord_vp_jj + chord_vp_jj ** 2)/(chord_vp_j + chord_vp_jj)
+            cp_macs[idx_n+j] = cp_mac
+
+            for k in range(3):
+                cp_lengths[idx_n+j][k] = vertice_points[idx_n+j+1][k] - vertice_points[idx_n+j][k]
+            # Vetor comprimento do painel
+            cp_length_x = cp_lengths[idx_n+j][0]
+            cp_length_y = cp_lengths[idx_n+j][1]
+            cp_length_z = cp_lengths[idx_n+j][2]
+
+            # Área do painel
+            cp_area = 0.5*(chord_vp_j + chord_vp_jj)*math.sqrt( cp_length_y ** 2 + cp_length_z ** 2 )
+            cp_areas[idx_n+j] = cp_area
+            partition_areas[i] += cp_area
+
+            for k in range(3): 
+                cp_dsl[idx_n+j][k] = cp_mac * cp_area / cp_lengths[idx_n+j][k]
+
+            if airfoil_i == airfoil_ii:
+                # cp_airfoil[idx_n+j] = airfoil_i
+                cp_airfoil[idx_n+j] = 1 # Testar desse jeito depois
+            else:
+                cp_airfoil[idx_n+j] = (collocation_points[idx_n+j][1]-vertice_points[idx_n][1]) / span_partition
+
+        # Razão de afilamento da partição atual
+        partition_lambda = chord_ii / chord_i
+        # Corda média aerodinâmica da asa
+        MAC += MAC + partition_areas[i]*(2/3)*chord_i*(1+partition_lambda+partition_lambda**2)/(1+partition_lambda)
         idx_n += n
         span_incremental += span_partition
         height_incremental += vp_z_component[-1]
+        
+    MAC = MAC / sum(partition_areas)
+    AR = (2 * total_span) ** 2 / (2 * sum(partition_areas))
 
 
-
-
-# Teste
 asa = models.Wing(
     spans=[3, 2],
     chords=[1, 0.8, 0.4],
