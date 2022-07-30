@@ -51,6 +51,24 @@ class Wing:
         Wing.sweep_check = sweep_check
 
 
+class SimulationWing:
+    def __init__(
+        self,
+        vertice_points,
+        collocation_points,
+        u_a,
+        u_n,
+        cp_lengths,
+        cp_dsl,
+        cp_areas,
+        cp_chords,
+        cp_macs,
+        # cp_reynolds,
+        # cp_airfoil
+    ):
+        pass
+
+
 class Flightconditions:
     def __init__(self, V_inf, nu, rho, h=0):
         Flightconditions.V_inf = V_inf
