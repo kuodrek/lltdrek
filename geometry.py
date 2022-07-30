@@ -194,9 +194,11 @@ def generate_mesh(Wing: models.Wing):
 
         cp_twist_distr = get_twist_distr(cp_y_component, twist_i, twist_ii, span_partition)
 
-        vertice_points[0][1] = span_incremental + vp_y_component[-1]
-        vertice_points[0][0] = vp_x_component[-1]
-        vertice_points[0][2] = height_incremental + vp_z_component[-1]
+        # Alocar o primeiro ponto em vertice_points
+        if i == 0:
+            vertice_points[0][1] = vp_y_component[0]
+            vertice_points[0][0] = vp_x_component[0]
+            vertice_points[0][2] = vp_z_component[0]
         for j, _ in enumerate(cp_y_component):
             # Componente Y dos CP / VP
             vertice_points[idx_n+j+1][1] = span_incremental + vp_y_component[j+1]
@@ -207,7 +209,6 @@ def generate_mesh(Wing: models.Wing):
             # Componente Z
             vertice_points[idx_n+j+1][2] = height_incremental + vp_z_component[j+1]
             collocation_points[idx_n+j][2] = height_incremental + cp_z_component[j]
-
             # Ângulo de torção (twist geométrico) do ponto de colocação [testar]
             twist_cp = cp_twist_distr[j]
 
@@ -215,7 +216,7 @@ def generate_mesh(Wing: models.Wing):
             euler_matrix = get_euler_matrix(dihedral_partition, twist_cp, sweep_partition)
             u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
             u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
-
+            # Talvez tenha que passar o comp_y ao invés de vertice_points / cp_points
             chord_vp_j = get_local_chord(vertice_points[idx_n+j][1], chord_i, chord_ii, span_partition)
             chord_vp_jj = get_local_chord(vertice_points[idx_n+j+1][1], chord_i, chord_ii, span_partition)
             chord_cp = get_local_chord(collocation_points[idx_n+j][1], chord_i, chord_ii, span_partition)
@@ -224,9 +225,10 @@ def generate_mesh(Wing: models.Wing):
             # Corda média aerodinâmica  do painel
             cp_mac = (2/3)*(chord_vp_j ** 2 + chord_vp_j * chord_vp_jj + chord_vp_jj ** 2)/(chord_vp_j + chord_vp_jj)
             cp_macs[idx_n+j] = cp_mac
-
+            print(cp_mac)
             for k in range(3):
                 cp_lengths[idx_n+j][k] = vertice_points[idx_n+j+1][k] - vertice_points[idx_n+j][k]
+
             # Vetor comprimento do painel
             cp_length_x = cp_lengths[idx_n+j][0]
             cp_length_y = cp_lengths[idx_n+j][1]
@@ -237,8 +239,9 @@ def generate_mesh(Wing: models.Wing):
             cp_areas[idx_n+j] = cp_area
             partition_areas[i] += cp_area
 
+            # cálculo do dimensionless spanwise length
             for k in range(3): 
-                cp_dsl[idx_n+j][k] = cp_mac * cp_area / cp_lengths[idx_n+j][k]
+                cp_dsl[idx_n+j][k] = (cp_mac * cp_lengths[idx_n+j][k]) / cp_area
 
             if airfoil_i == airfoil_ii:
                 # cp_airfoil[idx_n+j] = airfoil_i
@@ -255,7 +258,9 @@ def generate_mesh(Wing: models.Wing):
         height_incremental += vp_z_component[-1]
         
     MAC = MAC / sum(partition_areas)
+    Sref = sum(partition_areas) * 2
     AR = (2 * total_span) ** 2 / (2 * sum(partition_areas))
+    aaaa=1
 
 
 asa = models.Wing(
@@ -263,9 +268,9 @@ asa = models.Wing(
     chords=[1, 0.8, 0.4],
     offsets=[0, 0, 0.5],
     twist_angles=[0, 0, 0],
-    dihedral_angles=[10, 15],
+    dihedral_angles=[0, 0],
     airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2'],
-    N_panels=10,
+    N_panels=12,
     distribution_type="cosine",
     sweep_check=False
 )
