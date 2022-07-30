@@ -103,7 +103,7 @@ def get_local_chord(y, chord_i, chord_ii, span_partition):
     return (chord_ii - chord_i) / span_partition * y + chord_i
 
 def get_euler_matrix(dihedral, twist, sweep):
-    # Utilizando-se rotação ZYX -> Ângulos de Tait-Bryan
+    # Utilizando-se rotação XYZ -> Ângulos de Tait-Bryan
     # REFERÊNCIA: https://en.wikipedia.org/wiki/Euler_angles#Conversion_to_other_orientation_representations
     c1 = np.cos(dihedral)
     c2 = np.cos(twist)
@@ -112,9 +112,9 @@ def get_euler_matrix(dihedral, twist, sweep):
     s2 = np.sin(twist)
     s3 = np.sin(sweep)
     euler_matrix = np.array([
-        [c1*c2, c1*s2*s3-c3*s1, s1*s3+c1*c3*s2],
-        [c2*s1, c1*c3+s1*s2*s3, c3*s1*s2-c1*s3],
-        [-s2, c2*s3, c2*c3]
+        [c2*c3, -s2, c2*s3],
+        [s1*s3+c1*c3*s2, c1*c2, c1*s2*s3-c3*s1],
+        [c3*s1*s2-c1*s3, c2*s1, c1*c3+s1*s2*s3]
         ], dtype='float32')
     return euler_matrix
 
@@ -216,16 +216,15 @@ def generate_mesh(Wing: models.Wing):
             euler_matrix = get_euler_matrix(dihedral_partition, twist_cp, sweep_partition)
             u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
             u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
-            # Talvez tenha que passar o comp_y ao invés de vertice_points / cp_points
-            chord_vp_j = get_local_chord(vertice_points[idx_n+j][1], chord_i, chord_ii, span_partition)
-            chord_vp_jj = get_local_chord(vertice_points[idx_n+j+1][1], chord_i, chord_ii, span_partition)
-            chord_cp = get_local_chord(collocation_points[idx_n+j][1], chord_i, chord_ii, span_partition)
+
+            chord_vp_j = get_local_chord(vp_y_component[j], chord_i, chord_ii, span_partition)
+            chord_vp_jj = get_local_chord(vp_y_component[j+1], chord_i, chord_ii, span_partition)
+            chord_cp = get_local_chord(cp_y_component[j], chord_i, chord_ii, span_partition)
             cp_chords[idx_n+j] = chord_cp
 
             # Corda média aerodinâmica  do painel
             cp_mac = (2/3)*(chord_vp_j ** 2 + chord_vp_j * chord_vp_jj + chord_vp_jj ** 2)/(chord_vp_j + chord_vp_jj)
             cp_macs[idx_n+j] = cp_mac
-            print(cp_mac)
             for k in range(3):
                 cp_lengths[idx_n+j][k] = vertice_points[idx_n+j+1][k] - vertice_points[idx_n+j][k]
 
@@ -252,7 +251,7 @@ def generate_mesh(Wing: models.Wing):
         # Razão de afilamento da partição atual
         partition_lambda = chord_ii / chord_i
         # Corda média aerodinâmica da asa
-        MAC += MAC + partition_areas[i]*(2/3)*chord_i*(1+partition_lambda+partition_lambda**2)/(1+partition_lambda)
+        MAC += partition_areas[i]*(2/3)*chord_i*(1+partition_lambda+partition_lambda**2)/(1+partition_lambda)
         idx_n += n
         span_incremental += span_partition
         height_incremental += vp_z_component[-1]
@@ -268,7 +267,7 @@ asa = models.Wing(
     chords=[1, 0.8, 0.4],
     offsets=[0, 0, 0.5],
     twist_angles=[0, 0, 0],
-    dihedral_angles=[0, 0],
+    dihedral_angles=[10, 15],
     airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2'],
     N_panels=12,
     distribution_type="cosine",
