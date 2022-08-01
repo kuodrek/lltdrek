@@ -67,35 +67,34 @@ class Wing:
         distribution_type = self.distribution_type
         sweep_check = self.sweep_check
 
-        self.total_span = sum(spans)
+        total_span = sum(spans)
         # Número de painéis por partição
-        # span_panel_numbers = spans / self.total_span * N_panels
-        self.span_panel_numbers = [value / self.total_span * N_panels for value in spans]
-        self.span_panel_numbers = [math.ceil(int(i)) for i in self.span_panel_numbers]
+        span_panel_numbers = [value / total_span * N_panels for value in spans]
+        span_panel_numbers = [math.ceil(int(i)) for i in span_panel_numbers]
         # Adicionar mais um painel por conta dos arredondamentos
-        if sum(self.span_panel_numbers) == N_panels - 1:
-            self.span_panel_numbers[-1] += 1
+        if sum(span_panel_numbers) == N_panels - 1:
+            span_panel_numbers[-1] += 1
 
-        self.partition_areas = np.zeros(len(spans))
+        partition_areas = np.zeros(len(spans))
         # Distribuição dos pontos de colocação e vértices
         # Note que o ponto de colocação é a representação pontual de um painel
-        self.collocation_points = np.zeros([N_panels, 3])
-        self.vertice_points = np.zeros([N_panels + 1, 3])
+        collocation_points = np.zeros([N_panels, 3])
+        vertice_points = np.zeros([N_panels + 1, 3])
 
         # Distribuição de vetores unitários dos pontos de colocação (posição da seção em relação ao escoamento)
-        self.u_a = np.zeros([N_panels, 3]) # Vetor unitário colinear à corda
-        self.u_n = np.zeros([N_panels, 3]) # Vetor unitário normal à corda
+        u_a = np.zeros([N_panels, 3]) # Vetor unitário colinear à corda
+        u_n = np.zeros([N_panels, 3]) # Vetor unitário normal à corda
 
         # Distribuição de propriedades geométricas dos painéis da asa
-        self.cp_lengths = np.zeros([N_panels, 3]) # Vetor de comprimento de cada painel
-        self.cp_dsl = np.zeros([N_panels, 3]) # Vetor de comprimento ao longo da envergadura adimensional (dimensionless spanwise length vector)
+        cp_lengths = np.zeros([N_panels, 3]) # Vetor de comprimento de cada painel
+        cp_dsl = np.zeros([N_panels, 3]) # Vetor de comprimento ao longo da envergadura adimensional (dimensionless spanwise length vector)
 
         # Distribuição de informações geométricas gerais dos pontos de colocação
-        self.cp_areas = np.zeros(N_panels) # Área de cada painel
-        self.cp_chords = np.zeros(N_panels) # Distribuição de cordas dos pontos de colocação
-        self.cp_macs = np.zeros(N_panels) # Corda média aerodinâmica de cada painel
-        self.cp_reynolds = np.zeros(N_panels) # Número de Reynolds de cada painel
-        self.cp_airfoils = np.zeros(N_panels) # Perfil de cada painel
+        cp_areas = np.zeros(N_panels) # Área de cada painel
+        cp_chords = np.zeros(N_panels) # Distribuição de cordas dos pontos de colocação
+        cp_macs = np.zeros(N_panels) # Corda média aerodinâmica de cada painel
+        cp_reynolds = np.zeros(N_panels) # Número de Reynolds de cada painel
+        cp_airfoils = np.zeros(N_panels) # Perfil de cada painel
 
         # Explicar estas variáveis
         idx_n = 0
@@ -103,7 +102,7 @@ class Wing:
         height_incremental = 0
         MAC = 0
         for i, span_partition in enumerate(spans):
-            n = self.span_panel_numbers[i]
+            n = span_panel_numbers[i]
             chord_i = chords[i]
             chord_ii = chords[i+1]
             offset_i = offsets[i]
@@ -132,67 +131,83 @@ class Wing:
 
             # Alocar o primeiro ponto em vertice_points
             if i == 0:
-                self.vertice_points[0][1] = vp_y_component[0]
-                self.vertice_points[0][0] = vp_x_component[0]
-                self.vertice_points[0][2] = vp_z_component[0]
+                vertice_points[0][1] = vp_y_component[0]
+                vertice_points[0][0] = vp_x_component[0]
+                vertice_points[0][2] = vp_z_component[0]
 
             for j, _ in enumerate(cp_y_component):
                 # Componente Y dos CP / VP
-                self.vertice_points[idx_n+j+1][1] = span_incremental + vp_y_component[j+1]
-                self.collocation_points[idx_n+j][1] = span_incremental + cp_y_component[j]
+                vertice_points[idx_n+j+1][1] = span_incremental + vp_y_component[j+1]
+                collocation_points[idx_n+j][1] = span_incremental + cp_y_component[j]
                 # Componente X
-                self.vertice_points[idx_n+j+1][0] = vp_x_component[j+1]
-                self.collocation_points[idx_n+j][0] = cp_x_component[j]
+                vertice_points[idx_n+j+1][0] = vp_x_component[j+1]
+                collocation_points[idx_n+j][0] = cp_x_component[j]
                 # Componente Z
-                self.vertice_points[idx_n+j+1][2] = height_incremental + vp_z_component[j+1]
-                self.collocation_points[idx_n+j][2] = height_incremental + cp_z_component[j]
+                vertice_points[idx_n+j+1][2] = height_incremental + vp_z_component[j+1]
+                collocation_points[idx_n+j][2] = height_incremental + cp_z_component[j]
                 # Ângulo de torção (twist geométrico) do ponto de colocação [testar]
                 twist_cp = cp_twist_distr[j]
 
                 # Vetores de posicionamento do painel (colinear e perpendicular à corda)
                 euler_matrix = geo.get_euler_matrix(dihedral_partition, twist_cp, sweep_partition)
-                self.u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
-                self.u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
+                u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
+                u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
 
                 chord_vp_j = geo.get_local_chord(vp_y_component[j], chord_i, chord_ii, span_partition)
                 chord_vp_jj = geo.get_local_chord(vp_y_component[j+1], chord_i, chord_ii, span_partition)
                 chord_cp = geo.get_local_chord(cp_y_component[j], chord_i, chord_ii, span_partition)
-                self.cp_chords[idx_n+j] = chord_cp
+                cp_chords[idx_n+j] = chord_cp
 
                 # Corda média aerodinâmica  do painel
                 cp_mac = (2/3)*(chord_vp_j ** 2 + chord_vp_j * chord_vp_jj + chord_vp_jj ** 2)/(chord_vp_j + chord_vp_jj)
-                self.cp_macs[idx_n+j] = cp_mac
+                cp_macs[idx_n+j] = cp_mac
                 for k in range(3):
-                    self.cp_lengths[idx_n+j][k] = self.vertice_points[idx_n+j+1][k] - self.vertice_points[idx_n+j][k]
+                    cp_lengths[idx_n+j][k] = vertice_points[idx_n+j+1][k] - vertice_points[idx_n+j][k]
 
                 # Vetor comprimento do painel
-                cp_length_x = self.cp_lengths[idx_n+j][0]
-                cp_length_y = self.cp_lengths[idx_n+j][1]
-                cp_length_z = self.cp_lengths[idx_n+j][2]
+                cp_length_x = cp_lengths[idx_n+j][0]
+                cp_length_y = cp_lengths[idx_n+j][1]
+                cp_length_z = cp_lengths[idx_n+j][2]
 
                 # Área do painel
                 cp_area = 0.5*(chord_vp_j + chord_vp_jj)*math.sqrt( cp_length_y ** 2 + cp_length_z ** 2 )
-                self.cp_areas[idx_n+j] = cp_area
-                self.partition_areas[i] += cp_area
+                cp_areas[idx_n+j] = cp_area
+                partition_areas[i] += cp_area
 
                 # cálculo do dimensionless spanwise length
                 for k in range(3): 
-                    self.cp_dsl[idx_n+j][k] = (cp_mac * self.cp_lengths[idx_n+j][k]) / cp_area
+                    cp_dsl[idx_n+j][k] = (cp_mac * cp_lengths[idx_n+j][k]) / cp_area
 
                 if airfoil_i == airfoil_ii:
-                    # self.cp_airfoils[idx_n+j] = airfoil_i
-                    self.cp_airfoils[idx_n+j] = 1 # Testar desse jeito depois
+                    # cp_airfoils[idx_n+j] = airfoil_i
+                    cp_airfoils[idx_n+j] = 1 # Testar desse jeito depois
                 else:
-                    self.cp_airfoils[idx_n+j] = (self.collocation_points[idx_n+j][1]-self.vertice_points[idx_n][1]) / span_partition
+                    cp_airfoils[idx_n+j] = (collocation_points[idx_n+j][1]-vertice_points[idx_n][1]) / span_partition
 
             # Razão de afilamento da partição atual
             partition_lambda = chord_ii / chord_i
             # Corda média aerodinâmica da asa
-            MAC += self.partition_areas[i]*(2/3)*chord_i*(1+partition_lambda+partition_lambda**2)/(1+partition_lambda)
+            MAC += partition_areas[i]*(2/3)*chord_i*(1+partition_lambda+partition_lambda**2)/(1+partition_lambda)
             idx_n += n
             span_incremental += span_partition
             height_incremental += vp_z_component[-1]
     
-        self.MAC = MAC / sum(self.partition_areas)
-        self.total_area = sum(self.partition_areas) * 2
-        self.AR = (2 * self.total_span) ** 2 / (2 * sum(self.partition_areas))
+        # Atribuição dos valores para o objeto
+        self.span_panel_numbers = span_panel_numbers
+        self.total_span = total_span
+        self.collocation_points = collocation_points
+        self.vertice_points = vertice_points
+        self.u_a = u_a
+        self.u_n = u_n
+        self.cp_lengths = cp_lengths
+        self.cp_dsl = cp_dsl
+        self.cp_areas = cp_areas
+        self.cp_chords = cp_chords
+        self.cp_macs = cp_macs
+        self.cp_reynolds = cp_reynolds
+        self.cp_airfoils = cp_airfoils
+        self.partition_areas = partition_areas
+        self.total_area = sum(partition_areas) * 2
+        self.MAC = MAC / sum(partition_areas)
+        self.AR = (2 * total_span) ** 2 / (2 * sum(partition_areas))
+
