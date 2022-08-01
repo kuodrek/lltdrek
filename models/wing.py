@@ -1,5 +1,5 @@
 import numpy as np
-import geometry as geo
+import utils.geometry as geo
 import math
 """
 inputs iniciais
