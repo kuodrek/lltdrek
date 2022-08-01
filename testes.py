@@ -1,4 +1,4 @@
-from models import Wing
+from models.wing import Wing
 
 asa = Wing(
     spans=[3, 2],
