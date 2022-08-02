@@ -1,8 +1,8 @@
 import numpy as np
 import timeit
-
 from models.wing import Wing
-N_iter = 1000
+
+N_iter = 100
 start_time = timeit.default_timer()
 for i in range(N_iter):
     asa = Wing(
@@ -19,4 +19,4 @@ for i in range(N_iter):
     asa.generate_mesh()
     # print(f"Iteracao {i}")
 print(f"Tempo total: {timeit.default_timer()-start_time}")
-np.show_config()
+# np.show_config()
