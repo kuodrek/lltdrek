@@ -7,8 +7,7 @@ def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, v_
     ri1j = np.zeros(3)
     ri2j = np.zeros(3)
     velocity_ij = np.zeros(3)
-    
-    # numpy way
+
     ri1j = collocation_point - vertice_point_1
     ri2j = collocation_point - vertice_point_2
 
@@ -27,6 +26,6 @@ def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, v_
         r12_cross_prod = np.cross(ri1j, ri2j)
         r12_dot_prod = np.dot(ri1j, ri2j)
         velocity_ij +=  mac / (4 * np.pi) * \
-            ( (ri1j_abs + ri2j_abs) * r12_cross_prod / (ri1j_abs * ri2j_abs * (ri1j_abs*ri2j_abs + r12_dot_prod)) )
+            ( (ri1j_abs+ri2j_abs) * r12_cross_prod / (ri1j_abs*ri2j_abs*(ri1j_abs*ri2j_abs+r12_dot_prod)) )
     
     return velocity_ij
