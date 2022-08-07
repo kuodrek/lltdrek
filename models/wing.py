@@ -174,7 +174,7 @@ class Wing:
                 cp_areas[idx_n+j] = cp_area
                 partition_areas[i] += cp_area
 
-                # cálculo do dimensionless spanwise length
+                # Cálculo do dimensionless spanwise length
                 for k in range(3): 
                     cp_dsl[idx_n+j][k] = (cp_mac * cp_lengths[idx_n+j][k]) / cp_area
 
