@@ -2,7 +2,7 @@ import numpy as np
 import numpy.linalg as npla
 
 
-# Function to calculate the induced velocity caused by a vortex panel in a point in space
+# Function to calculate the induced velocity caused by a vortex panel in a point
 def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, v_inf, mac, h, same_panel_check): 
     ri1j = np.zeros(3)
     ri2j = np.zeros(3)
