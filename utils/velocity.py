@@ -1,9 +1,29 @@
+from curses.panel import new_panel
 import numpy as np
 import numpy.linalg as npla
+from models.wing import Wing
 
+# Distribution of induced velocities
+def get_induced_velocity_distribution(Wing: Wing, v_inf):
+    collocation_points = Wing.collocation_points
+    vertice_points = Wing.vertice_points
+    cp_macs = Wing.cp_macs
+    N_panels = Wing.N_panels
+
+    v_ij_distr = np.zeros([N_panels,N_panels,3])
+    for i in range(N_panels):
+        cp_i = collocation_points[i]
+        mac_i = cp_macs[i]
+        for j in range(N_panels):
+            vp_i = vertice_points[j]
+            vp_ii = vertice_points[j+1]
+            v_ij = get_induced_velocity(cp_i, vp_i, vp_ii, mac_i, v_inf)
+            v_ij_distr[i,j,:] = v_ij
+
+    return v_ij_distr
 
 # Function to calculate the induced velocity caused by a vortex panel in a point
-def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, v_inf, mac): 
+def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, mac, v_inf): 
     velocity_ij = np.zeros(3)
 
     ri1j = collocation_point - vertice_point_1
