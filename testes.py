@@ -2,21 +2,19 @@ import numpy as np
 import timeit
 from models.wing import Wing
 
-N_iter = 100
-start_time = timeit.default_timer()
-for i in range(N_iter):
-    asa = Wing(
-        spans=[3, (1+i/N_iter)],
-        chords=[1, 0.8, 0.4],
-        offsets=[0, 0, 0.5],
-        twist_angles=[0, 0, 0],
-        dihedral_angles=[10, 15],
-        airfoils=['optfoilb2', 'optfoilb2', 'optfoilb2'],
-        N_panels=12,
-        distribution_type="cosine",
-        sweep_check=False
-    )
-    asa.generate_mesh()
-    # print(f"Iteracao {i}")
-print(f"Tempo total: {timeit.default_timer()-start_time}")
-# np.show_config()
+N_panels = 4
+mat_teste = np.zeros([N_panels, N_panels, 3])
+G = np.zeros(N_panels)
+
+for i in range(N_panels):
+    G[i] = i
+    for j in range(N_panels):
+        v_ij = np.array([i+1, j+1, i+j+1])
+        mat_teste[i,j,:] = v_ij
+
+for i in range(N_panels):
+    final = mat_teste[i,:,:] * G[i]
+
+print(G)
+print(mat_teste)
+print(final)
