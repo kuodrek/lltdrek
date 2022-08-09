@@ -19,7 +19,7 @@ def main_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G)
     velocity_sum = np.zeros(3)
     for i in range(N_panels):
         v_ij_panel = v_ij_distr[i,:,:]
-        velocity_sum = v_ij_panel * G[j]
+        velocity_sum = v_ij_panel * G
         aoa_i = np.arctan(np.dot(velocity_sum+v_inf, u_n[i]) / np.dot(velocity_sum+v_inf, u_a[i]))
         # Calcular o Cl da seção
         cl_i = 1
