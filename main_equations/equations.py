@@ -28,7 +28,25 @@ def main_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G)
 
     return residual
 
-def corrector_equation(Wing: Wing, FlightConditions: FlightConditions):
+def corrector_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G):
+    N_panels = Wing.N_panels
+    collocation_points = Wing.collocation_points
+    vertice_points = Wing.vertice_points
+    u_n = Wing.u_n
+    u_a = Wing.u_a
+    cp_dsl = Wing.cp_dsl
+    cp_macs = Wing.cp_macs # Verificar se usa o mac de cada painel ou o MAC global
+    v_inf = np.array([1, 0, 0])
     delta_G = 0
+
+    for i in range(N_panels):
+        v_ij_panel = v_ij_distr[i,:,:]
+        v_total = v_inf + np.sum(v_ij_panel * G, axis=0)
+        w_i = np.cross(v_total, cp_dsl[i])
+        v_ni = np.dot(v_total, u_n[i])
+        v_ai = np.dot(v_total, u_a[i])
+
+        cl_alfa_i = 1
+
     return delta_G
     
