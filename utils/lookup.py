@@ -1,21 +1,60 @@
-cl_dict = {
+airfoils_data_dict = {
     "naca0012": {
         "1.2e5": {
             "cl_list": [[1, 1.1], [2, 1.3], [3, 1.35], [4, 1.4], [5, 1.46]],
             "cl_alfa": 1,
             "cm0": 1,
         },
-        "1e6": [[1, 1.14], [2, 1.34], [3, 1.33], [4, 1.5], [5, 1.6]],
-        "1e7": [[1, 1.2], [2, 1.5], [3, 1.7], [4, 1.8], [5, 1.9]],
+        "1e6": {
+            "cl_list": [[1, 1.14], [2, 1.34], [3, 1.33], [4, 1.5], [5, 1.6]],
+            "cl_alfa": 1,
+            "cm0": 1,
+        },
+        "1e7": {
+            "cl_list": [[1, 1.2], [2, 1.5], [3, 1.7], [4, 1.8], [5, 1.9]],
+            "cl_alfa": 1,
+            "cm0": 1,
+        },
     },
     "s1223": {
-        "1.2e5": [[1, 1.1], [2, 1.3], [3, 1.35], [4, 1.4], [5, 1.46]],
-        "1e6": [[1, 1.14], [2, 1.34], [3, 1.33], [4, 1.5], [5, 1.6]],
-        "1e7": [[1, 1.2], [2, 1.5], [3, 1.7], [4, 1.8], [5, 1.9]],
+        "1.2e5": {
+            "cl_list": [[1, 1.1], [2, 1.3], [3, 1.35], [4, 1.4], [5, 1.46]],
+            "cl_alfa": 1,
+            "cm0": 1,
+        },
+        "1e6": {
+            "cl_list": [[1, 1.14], [2, 1.34], [3, 1.33], [4, 1.5], [5, 1.6]],
+            "cl_alfa": 1,
+            "cm0": 1,
+        },
+        "1e7": {
+            "cl_list": [[1, 1.2], [2, 1.5], [3, 1.7], [4, 1.8], [5, 1.9]],
+            "cl_alfa": 1,
+            "cm0": 1,
+        },
     },
 }
 
 
-for Re_i, Cl_i in cl_dict.items():
-    print(float(Re_i))
-    print(Cl_i)
+def get_cl(airfoil_data_dict, reynolds_number, aoa):
+    reynolds_list = list(airfoil_data_dict)
+    for reynolds_i, cl_data in airfoil_data_dict.items():
+        reynolds_i = int(reynolds_i)
+
+
+def aoa_list_lookup(cl_list, aoa):
+    if aoa <= cl_list[0][0]:
+        pass
+    elif aoa >= cl_list[-1][0]:
+        pass
+    else:
+        for values in cl_list:
+            aoa_i = values[0]
+
+
+# cl = get_cl(airfoils_data_dict)
+for index, items in airfoils_data_dict["s1223"].items():
+    print(f"item: {items}")
+    print(f"index: {index}")
+
+print(list(airfoils_data_dict["s1223"]))
