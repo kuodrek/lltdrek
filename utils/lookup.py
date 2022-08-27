@@ -1,19 +1,19 @@
 def get_cl(airfoil_data_dict, reynolds_number, aoa):
-    reynolds_list = list(airfoil_data_dict)
-    reynolds_list = [float(reynolds) for reynolds in reynolds_list]
+    reynolds_list_str = list(airfoil_data_dict)
+    reynolds_list = [float(reynolds) for reynolds in reynolds_list_str]
     if reynolds_number <= reynolds_list[0]:
-        cl_data = airfoil_data_dict[reynolds_list[0]]
+        cl_data = airfoil_data_dict[reynolds_list_str[0]]
         cl = aoa_list_lookup(cl_data, aoa)
     elif reynolds_number >= reynolds_list[-1]:
-        cl_data = airfoil_data_dict[reynolds_list[-1]]
+        cl_data = airfoil_data_dict[reynolds_list_str[-1]]
         cl = aoa_list_lookup(cl_data, aoa)
     else:
         for i in range(len(reynolds_list)-1):
             re_i = reynolds_list[i]
             re_ii = reynolds_list[i+1]
             if re_i <= reynolds_number <= re_ii:
-                cl_data_i = airfoil_data_dict[reynolds_list[i]]
-                cl_data_ii = airfoil_data_dict[reynolds_list[i+1]]
+                cl_data_i = airfoil_data_dict[reynolds_list_str[i]]
+                cl_data_ii = airfoil_data_dict[reynolds_list_str[i+1]]
 
                 cl_i = aoa_list_lookup(cl_data_i, aoa)
                 cl_ii = aoa_list_lookup(cl_data_ii, aoa)
