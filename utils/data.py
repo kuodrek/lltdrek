@@ -1,14 +1,13 @@
 import os
-import sys
 
-def load_data():
+def load_data(folder_name: str):
     current_dir = os.path.abspath(os.getcwd())
     print(current_dir)
 
 
-def load_cl_file():
+def cl_file_to_dict():
     pass
 
 
-def load_dat_file():
+def dat_file_to_dict():
     pass
