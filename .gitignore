@@ -1,5 +1,6 @@
 __pycache__
 venv/
+.vscode/
 airfoils/
 teste.py
 .env
