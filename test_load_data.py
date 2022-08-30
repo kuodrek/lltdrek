@@ -1,3 +1,3 @@
 from utils import data
 
-data.load_data()
+data.load_folder('airfoils_test')
