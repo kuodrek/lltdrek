@@ -1,7 +1,7 @@
 import os
 
 
-def load_folder(folder_name: str, data_dict: dict = None):
+def load_folder(folder_name: str):
     # Get full directory to lookup files
     current_dir = os.path.abspath(os.getcwd())
     target_dir = os.path.join(current_dir, folder_name)
@@ -15,17 +15,17 @@ def load_folder(folder_name: str, data_dict: dict = None):
 
     for file in files_flat_list:
         if file.endswith('.txt') is True:
-            cl_file_to_dict(file)
+            airfoil_cl_list = cl_to_list(file)
         else:
-            dat_file_to_dict(file)
+            airfoil_dat_list = dat_to_list(file)
 
 
 
-def cl_file_to_dict(file: str):
+def cl_to_list(file: str):
     pass
 
 
-def dat_file_to_dict(file: str):
+def dat_to_list(file: str):
     pass
 
 
