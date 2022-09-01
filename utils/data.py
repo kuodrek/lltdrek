@@ -90,4 +90,5 @@ def get_linear_coefs(cl_list: list):
         
 
 def xfoil_file_to_cl_file(file_path: str):
+    # To be implemented
     pass
