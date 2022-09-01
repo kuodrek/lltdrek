@@ -1,8 +1,10 @@
 import os
 import numpy as np
 
+
 AOA_POLYFIT_MIN = 0
 AOA_POLYFIT_MAX = 8
+
 
 def load_folder(folder_name: str, data_dict: dict = None):
     # Get full directory to lookup files
@@ -72,8 +74,6 @@ def dat_file_to_dict(file_path: str):
     return dat_list
 
 
-
-
 def get_linear_coefs(cl_list: list):
     aoa_interp_list = []
     cl_interp_list = []
@@ -89,6 +89,5 @@ def get_linear_coefs(cl_list: list):
     return cl_linear_coefs_dict
         
 
-
-def xfoil_file_to_cl_file(file: str):
+def xfoil_file_to_cl_file(file_path: str):
     pass
