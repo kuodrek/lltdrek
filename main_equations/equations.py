@@ -13,22 +13,22 @@ def main_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G)
     u_a = Wing.u_a
     cp_dsl = Wing.cp_dsl
     cp_macs = Wing.cp_macs # Verificar se usa o mac de cada painel ou o MAC global
-    v_inf = np.array([1, 0, 0])
+    v_inf = FlightConditions.v_inf_array
 
     residual = np.zeros(N_panels)
     velocity_sum = np.zeros(3)
     for i in range(N_panels):
         v_ij_panel = v_ij_distr[i,:,:]
         velocity_sum = v_ij_panel * G
+        
         aoa_i = np.arctan(np.dot(velocity_sum+v_inf, u_n[i]) / np.dot(velocity_sum+v_inf, u_a[i]))
         # Calcular o Cl da seção
         cl_i = 1
-        # Calculo do valor residual da função
         residual[i] = 2 * npla.norm( np.cross(velocity_sum+v_inf, cp_dsl[i]) )*G[i] - cl_i
 
     return residual
 
-def corrector_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G):
+def corrector_equation(Wing: Wing, FlightConditions: FlightConditions, G):
     N_panels = Wing.N_panels
     collocation_points = Wing.collocation_points
     vertice_points = Wing.vertice_points
@@ -36,17 +36,14 @@ def corrector_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_dist
     u_a = Wing.u_a
     cp_dsl = Wing.cp_dsl
     cp_macs = Wing.cp_macs # Verificar se usa o mac de cada painel ou o MAC global
-    v_inf = np.array([1, 0, 0])
-    delta_G = 0
+    v_inf = FlightConditions.v_inf_array
 
-    for i in range(N_panels):
-        v_ij_panel = v_ij_distr[i,:,:]
-        v_total = v_inf + np.sum(v_ij_panel * G, axis=0)
-        w_i = np.cross(v_total, cp_dsl[i])
-        v_ni = np.dot(v_total, u_n[i])
-        v_ai = np.dot(v_total, u_a[i])
+    v_local = v_inf + v_ind_i * G
 
-        cl_alfa_i = 1
+    w_i = 1
+    v_ni = 1
+    v_ai = 1
+    cl_alfa_i = 1
 
     return delta_G
     
