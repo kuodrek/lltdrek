@@ -1,17 +1,6 @@
 import numpy as np
 import utils.geometry as geo
 import math
-"""
-inputs iniciais
-ASA
-Vetor de envergaduras - b
-vetor de cordas - c
-vetor de offsets - offsets
-vetor de twists - twangles
-vetor de diedros - dihedral
-vetor de perfis - airfoils
-gap - para o caso de duas asas
-"""
 
 
 class Wing:
@@ -23,9 +12,12 @@ class Wing:
         twist_angles,
         dihedral_angles,
         airfoils,
+        surface_name='wing',
+        x_pos=0,
+        z_pos=0,
         N_panels=20,
         distribution_type="linear",
-        sweep_check=False
+        sweep_check=False,
     ):
         Wing.spans = spans
         Wing.chords = chords
@@ -33,10 +25,13 @@ class Wing:
         Wing.twist_angles = [angle * np.pi / 180 for angle in twist_angles]
         Wing.dihedral_angles = [angle * np.pi / 180 for angle in dihedral_angles]
         Wing.airfoils = airfoils
+        Wing.surface_name = surface_name
+        Wing.x_pos = x_pos
+        Wing.z_pos = z_pos
         Wing.N_panels = N_panels
         Wing.distribution_type = distribution_type
         Wing.sweep_check = sweep_check
-        # Propriedades obtidas através do método get_mesh
+        # Properties obtained through get_mesh method
         Wing.total_span = None
         Wing.span_panel_numbers = None
         Wing.collocation_points = None
@@ -54,6 +49,7 @@ class Wing:
         Wing.partition_areas = None
         Wing.total_area = None
         Wing.AR = None
+    
     
     def generate_mesh(self):
         # Inicialização das variáveis
@@ -96,7 +92,7 @@ class Wing:
         cp_reynolds = np.zeros(N_panels) # Número de Reynolds de cada painel
         cp_airfoils = np.zeros(N_panels) # Perfil de cada painel
 
-        # Explicar estas variáveis
+        # TODO: explain what these variables mean
         idx_n = 0
         span_incremental = 0
         height_incremental = 0
