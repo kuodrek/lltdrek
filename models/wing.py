@@ -12,7 +12,7 @@ class Wing:
         twist_angles,
         dihedral_angles,
         airfoils,
-        surface_name='wing',
+        surface_name,
         x_pos=0,
         z_pos=0,
         N_panels=20,
