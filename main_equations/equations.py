@@ -2,10 +2,10 @@ import numpy as np
 import numpy.linalg as npla
 from models.wing import Wing
 from models.simulation import Simulation
-from models.flight_conditions import FlightConditions
+from models.flight_condition import FlightCondition
 from utils import velocity
 
-def main_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G):
+def main_equation(Wing: Wing, FlightCondition: FlightCondition, v_ij_distr, G):
     N_panels = Wing.N_panels
     collocation_points = Wing.collocation_points
     vertice_points = Wing.vertice_points
@@ -28,7 +28,7 @@ def main_equation(Wing: Wing, FlightConditions: FlightConditions, v_ij_distr, G)
 
     return residual
 
-def corrector_equation(Wing: Wing, FlightConditions: FlightConditions):
+def corrector_equation(Wing: Wing, FlightCondition: FlightCondition):
     delta_G = 0
     return delta_G
     
