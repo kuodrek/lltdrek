@@ -4,20 +4,14 @@ from models.wing import Wing
 
 
 # Distribution of induced velocities
-def get_induced_velocity_distribution(Wing: Wing, v_inf):
-    collocation_points = Wing.collocation_points
-    vertice_points = Wing.vertice_points
-    cp_macs = Wing.cp_macs
-    N_panels = Wing.N_panels
-
-    v_ij_distr = np.zeros([N_panels,N_panels,3])
-    for i in range(N_panels):
-        cp_i = collocation_points[i]
+def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_points, v_inf):
+    v_ij_distr = np.zeros([len(collocation_points),len(vertice_points),3])
+    for i, cp_i in collocation_points.enumerate():
         mac_i = cp_macs[i]
-        for j in range(N_panels):
-            vp_i = vertice_points[j]
-            vp_ii = vertice_points[j+1]
-            v_ij = get_induced_velocity(cp_i, vp_i, vp_ii, mac_i, v_inf)
+        for j, _ in vertice_points.enumerate():
+            vp_j = vertice_points[j]
+            vp_jj = vertice_points[j+1]
+            v_ij = get_induced_velocity(cp_i, vp_j, vp_jj, mac_i, v_inf)
             v_ij_distr[i,j,:] = v_ij
 
     return v_ij_distr
