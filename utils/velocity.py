@@ -6,15 +6,28 @@ from models.wing import Wing
 # Distribution of induced velocities
 def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_points, v_inf):
     v_ij_distr = np.zeros([len(collocation_points),len(vertice_points),3])
-    for i, cp_i in collocation_points.enumerate():
+    len_cp = len(collocation_points)
+    len_vp = len(vertice_points) - 1
+    for i in range(len_cp):
+        cp_i = collocation_points[i]
         mac_i = cp_macs[i]
-        for j, _ in vertice_points.enumerate():
+        for j in range(len_vp):
             vp_j = vertice_points[j]
             vp_jj = vertice_points[j+1]
             v_ij = get_induced_velocity(cp_i, vp_j, vp_jj, mac_i, v_inf)
             v_ij_distr[i,j,:] = v_ij
 
     return v_ij_distr
+
+
+def get_local_induced_velocity(G_array, v_ij_distr):
+    v_ij_dummy = np.zeros(3)
+    for i, row in v_ij_distr.enumerate():
+        for j, column in v_ij_distr.enumerate():
+            pass
+        
+
+    pass
 
 
 # Function to calculate the induced velocity caused by a vortex panel in a point
