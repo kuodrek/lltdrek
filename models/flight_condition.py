@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 
 
@@ -9,7 +10,7 @@ class FlightCondition:
     altura do chao - h
     angulo de ataque - aoa
     """
-    def __init__(self, V_inf, nu, rho, aoa, h=0, ground_effect_check=False):
+    def __init__(self, V_inf, nu, rho, aoa: List, h=0, ground_effect_check=False):
         FlightCondition.V_inf = V_inf
         FlightCondition.nu = nu
         FlightCondition.rho = rho
