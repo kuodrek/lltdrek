@@ -2,6 +2,7 @@ import numpy as np
 from models.wing import Wing
 from models.flight_condition import FlightCondition
 from utils import velocity
+import copy
 
 asa = Wing(
         spans=[3, 2],
@@ -15,6 +16,10 @@ asa = Wing(
         sweep_check=False,
         surface_name='asa'
     )
+
+asa.generate_mesh()
+asa = copy.deepcopy(asa)
+print(len(asa.collocation_points))
 
 asa_2 = Wing(
         spans=[3, 2],
@@ -31,10 +36,8 @@ asa_2 = Wing(
         z_pos=1
     )
 
-asa.generate_mesh()
-print(len(asa.collocation_points))
 asa_2.generate_mesh()
-print(len(asa.collocation_points))
+print(len(asa_2.collocation_points))
 
 flight_condition = FlightCondition(
     V_inf=15,
