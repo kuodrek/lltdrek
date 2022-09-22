@@ -1,4 +1,4 @@
-from models.wingpool_dataclass import WingPool
+from models.wingpool import WingPool
 from models.wing import Wing
 from models.flight_condition import FlightCondition
 
