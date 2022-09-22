@@ -1,8 +1,8 @@
-from typing import List
+from typing import Dict, List
 from models.wing import Wing
 from models.flight_condition import FlightCondition
 from utils import velocity
-
+from dataclasses import dataclass
 
 wingpool_dict_template = {
     "surface_name": {
@@ -14,13 +14,12 @@ G_dict = {
     "surface_name": "G_array",
 }
 
+@dataclass(frozen=True)
 class WingPool:
-    def __init__(self, wing_list: List[Wing], flight_condition: FlightCondition):
-        WingPool.wing_list = wing_list
-        WingPool.flight_condition = flight_condition
-        WingPool.velocities_dict = None
-        WingPool.G_dict = {}
-        # TODO: implement a history_check variable to keep history of solutions (G_dict)
+    wing_list: List[Wing]
+    flight_condition: FlightCondition
+    velocities_dict: Dict = None
+    G_dict: Dict = None
 
 
     def calculate_induced_velocities(self):
