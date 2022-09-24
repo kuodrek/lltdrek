@@ -1,58 +1,49 @@
 import numpy as np
 import utils.geometry as geo
 import math
+from typing import List, Union
+from dataclasses import dataclass, field
 
 
+@dataclass
 class Wing:
-    def __init__(
-        self,
-        spans,
-        chords,
-        offsets,
-        twist_angles,
-        dihedral_angles,
-        airfoils,
-        surface_name,
-        x_pos=0,
-        z_pos=0,
-        N_panels=20,
-        distribution_type="linear",
-        sweep_check=False,
-    ):
-        Wing.spans = spans
-        Wing.chords = chords
-        Wing.offsets = offsets
-        Wing.twist_angles = [angle * np.pi / 180 for angle in twist_angles]
-        Wing.dihedral_angles = [angle * np.pi / 180 for angle in dihedral_angles]
-        Wing.airfoils = airfoils
-        Wing.surface_name = surface_name
-        Wing.x_pos = x_pos
-        Wing.z_pos = z_pos
-        Wing.N_panels = N_panels
-        Wing.distribution_type = distribution_type
-        Wing.sweep_check = sweep_check
-        # Properties obtained through get_mesh method
-        Wing.total_span = None
-        Wing.span_panel_numbers = None
-        Wing.collocation_points = None
-        Wing.vertice_points = None
-        Wing.u_a = None
-        Wing.u_n = None
-        Wing.cp_lengths = None
-        Wing.cp_dsl = None
-        Wing.cp_areas = None
-        Wing.cp_chords = None
-        Wing.cp_macs = None
-        Wing.cp_reynolds = None
-        Wing.cp_airfoils = None
-        Wing.MAC = None
-        Wing.partition_areas = None
-        Wing.total_area = None
-        Wing.AR = None
-    
+    spans: List[float]
+    chords: List[float]
+    offsets: List[float]
+    twist_angles: List[float]
+    dihedral_angles: List[float]
+    airfoils: List[str]
+    surface_name: str
+    N_panels: Union[int, List[int]]
+    x_pos: float = 0
+    z_pos: float = 0
+    distribution_type: str = 'Linear'
+    sweep_check: bool = False
+    # Properties obtained through get_mesh method
+    total_span: float = field(init=False)
+    span_panel_numbers: List[int] = field(init=False)
+    collocation_points: np.ndarray = field(init=False)
+    vertice_points: np.ndarray = field(init=False)
+    u_a: np.ndarray = field(init=False)
+    u_n: np.ndarray = field(init=False)
+    cp_lengths: np.ndarray = field(init=False)
+    cp_dsl: np.ndarray = field(init=False)
+    cp_areas: np.ndarray = field(init=False)
+    cp_chords: np.ndarray = field(init=False)
+    cp_macs: np.ndarray = field(init=False)
+    cp_reynolds: np.ndarray = field(init=False)
+    cp_airfoils: np.ndarray = field(init=False)
+    MAC: float = field(init=False)
+    partition_areas: np.ndarray = field(init=False)
+    total_area: float = field(init=False)
+    AR: float = field(init=False)
+
+    def __post_init__(self):
+        # Convert degree to rad
+        self.twist_angles = [angle * np.pi / 180 for angle in self.twist_angles]
+        self.dihedral_angles = [angle * np.pi / 180 for angle in self.dihedral_angles]
     
     def generate_mesh(self):
-        # Inicialização das variáveis
         N_panels = self.N_panels
         spans = self.spans
         chords = self.chords
@@ -64,28 +55,24 @@ class Wing:
         sweep_check = self.sweep_check
 
         total_span = sum(spans)
-        # Número de painéis por partição
+        # Number of panels of each partition
         span_panel_numbers = [value / total_span * N_panels for value in spans]
         span_panel_numbers = [math.ceil(int(i)) for i in span_panel_numbers]
-        # Adicionar mais um painel por conta dos arredondamentos
+        # Add a panel to compensate rounding
         if sum(span_panel_numbers) == N_panels - 1:
             span_panel_numbers[-1] += 1
 
         partition_areas = np.zeros(len(spans))
-        # Distribuição dos pontos de colocação e vértices
-        # Note que o ponto de colocação é a representação pontual de um painel
+        
         collocation_points = np.zeros([N_panels, 3])
         vertice_points = np.zeros([N_panels + 1, 3])
 
-        # Distribuição de vetores unitários dos pontos de colocação (posição da seção em relação ao escoamento)
         u_a = np.zeros([N_panels, 3]) # Vetor unitário colinear à corda
         u_n = np.zeros([N_panels, 3]) # Vetor unitário normal à corda
 
-        # Distribuição de propriedades geométricas dos painéis da asa
         cp_lengths = np.zeros([N_panels, 3]) # Vetor de comprimento de cada painel
         cp_dsl = np.zeros([N_panels, 3]) # Vetor de comprimento ao longo da envergadura adimensional (dimensionless spanwise length vector)
 
-        # Distribuição de informações geométricas gerais dos pontos de colocação
         cp_areas = np.zeros(N_panels) # Área de cada painel
         cp_chords = np.zeros(N_panels) # Distribuição de cordas dos pontos de colocação
         cp_macs = np.zeros(N_panels) # Corda média aerodinâmica de cada painel
@@ -127,8 +114,8 @@ class Wing:
 
             # Alocar o primeiro ponto em vertice_points
             if i == 0:
-                vertice_points[0][1] = vp_y_component[0]
                 vertice_points[0][0] = vp_x_component[0]
+                vertice_points[0][1] = vp_y_component[0]
                 vertice_points[0][2] = vp_z_component[0]
 
             for j, _ in enumerate(cp_y_component):
@@ -206,4 +193,3 @@ class Wing:
         self.total_area = sum(partition_areas) * 2
         self.MAC = MAC / sum(partition_areas)
         self.AR = (2 * total_span) ** 2 / (2 * sum(partition_areas))
-

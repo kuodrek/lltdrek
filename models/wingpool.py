@@ -2,7 +2,7 @@ from typing import Dict, List
 from models.wing import Wing
 from models.flight_condition import FlightCondition
 from utils import velocity
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 wingpool_dict_template = {
     "surface_name": {
@@ -18,9 +18,8 @@ G_dict = {
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
-    velocities_dict: Dict = None
-    G_dict: Dict = None
-
+    velocities_dict: Dict = field(init=False)
+    G_dict: Dict = field(init=False)
 
     def calculate_induced_velocities(self):
         v_inf = self.flight_condition.v_inf_array
