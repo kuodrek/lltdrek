@@ -175,6 +175,11 @@ class Wing:
             span_incremental += span_partition
             height_incremental += vp_z_component[-1]
     
+        collocation_points[:,0] += self.x_pos
+        vertice_points[:,0] += self.x_pos
+        collocation_points[:,2] += self.z_pos
+        vertice_points[:,2] += self.z_pos
+        
         # Atribuição dos valores para o objeto
         self.span_panel_numbers = span_panel_numbers
         self.total_span = total_span
@@ -193,3 +198,6 @@ class Wing:
         self.total_area = sum(partition_areas) * 2
         self.MAC = MAC / sum(partition_areas)
         self.AR = (2 * total_span) ** 2 / (2 * sum(partition_areas))
+
+        def calculate_reynolds(self):
+            pass
