@@ -3,8 +3,10 @@ from models.wing import Wing
 from models.flight_condition import FlightCondition
 from utils import velocity
 from dataclasses import dataclass, field
+import numpy as np
 
-wingpool_dict_template = {
+'''
+ind_velocities_dict = {
     "surface_name": {
         "surface_name": "v_ind_distr"
     }
@@ -14,30 +16,50 @@ G_dict = {
     "surface_name": "G_array",
 }
 
-@dataclass(frozen=True)
+total_velocity_dict = {
+   "surface_name": "total_velocity"
+}
+
+aoa_eff_dict = {
+    "surface_name": "aoa_eff_list",
+}
+'''
+
+
+@dataclass
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
-    velocities_dict: Dict = field(init=False)
+    initial_G: dict = None
+    ind_velocities_dict: Dict = field(init=False)
     G_dict: Dict = field(init=False)
+    total_velocity_dict: Dict = field(init=False)
+    aoa_eff_dict: Dict = field(init=False)
 
     def __post_init__(self):
-        self.velocities_dict = {}
+        self.ind_velocities_dict = {}
         self.G_dict = {}
+        self.total_velocity_dict = {}
+        self.aoa_eff_dict = {}
 
         for _, wing in enumerate(self.wing_list):
             wing_name = wing.surface_name
             N_panels = wing.N_panels
-            self.velocities_dict[wing_name] = None
-            self.G_dict[wing_name] = None
-            G = [1 for _ in range(N_panels)]
-            self.update_solution(G=G,surface_name=wing_name)
+
+            self.ind_velocities_dict[wing_name] = {}
+            self.total_velocity_dict[wing_name] = {}
+            self.aoa_eff_dict[wing_name] = {}
+            if self.initial_G == None:
+                self.G_dict[wing_name] = []
+                G = [1 for _ in range(N_panels)]
+                self.update_solution(G=G,surface_name=wing_name)
+            else:
+                self.G_dict = self.initial_G
 
 
     def calculate_induced_velocities(self):
         v_inf = self.flight_condition.v_inf_array
         for wing_cp in self.wing_list:
-            velocities_dict = {}
             collocation_points = wing_cp.collocation_points
             cp_macs = wing_cp.cp_macs
             for wing_vp in self.wing_list:
@@ -45,16 +67,20 @@ class WingPool:
                 v_ij_distr = velocity.get_induced_velocity_distribution(
                     collocation_points, cp_macs, vertice_points, v_inf
                 )
-                velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
-        self.velocities_dict = velocities_dict
+                self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
+
+        return self.ind_velocities_dict
     
 
     def update_solution(self, G, surface_name: str):
         self.G_dict[surface_name] = G
     
+    def calculate_aoa_eff(self):
+        total_velocity = 1
+        aoa_i = np.arctan(np.dot(total_velocity, u_n[i]) / np.dot(total_velocity, u_a[i]))
 
-    def get_total_velocity(self, target_wing: Wing):
-        v_ij_dict = self.velocities_dict[target_wing.surface_name]
+    def get_total_dim_velocity(self, target_wing: Wing):
+        v_ij_dict = self.ind_velocities_dict[target_wing.surface_name]
         v_inf_array = self.flight_condition.v_inf_array
         v_total = v_inf_array
 
@@ -70,3 +96,11 @@ class WingPool:
                     v_total += ind_velocity * G[j]
 
         return v_total
+
+    def calculate_spanwise_distribution(self):
+        pass
+
+    def calculate_corrector_matrix(self):
+        pass
+
+

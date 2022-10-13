@@ -5,7 +5,7 @@ from models.simulation import Simulation
 from models.flight_condition import FlightCondition
 from utils import velocity
 
-def main_equation(Wing: Wing, FlightCondition: FlightCondition, v_ij_distr, G):
+def main_equation(Wing: Wing, flight_condition: FlightCondition, v_ij_distr, G):
     N_panels = Wing.N_panels
     collocation_points = Wing.collocation_points
     vertice_points = Wing.vertice_points
@@ -13,7 +13,7 @@ def main_equation(Wing: Wing, FlightCondition: FlightCondition, v_ij_distr, G):
     u_a = Wing.u_a
     cp_dsl = Wing.cp_dsl
     cp_macs = Wing.cp_macs # Verificar se usa o mac de cada painel ou o MAC global
-    v_inf = np.array([1, 0, 0])
+    v_inf = flight_condition.v_inf_array
 
     residual = np.zeros(N_panels)
     velocity_sum = np.zeros(3)

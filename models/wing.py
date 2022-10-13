@@ -1,4 +1,5 @@
 import numpy as np
+from models.flight_condition import FlightCondition
 import utils.geometry as geo
 import math
 from typing import List, Union
@@ -199,5 +200,5 @@ class Wing:
         self.MAC = MAC / sum(partition_areas)
         self.AR = (2 * total_span) ** 2 / (2 * sum(partition_areas))
 
-        def calculate_reynolds(self):
+        def calculate_reynolds(self, flight_condition: FlightCondition):
             pass
