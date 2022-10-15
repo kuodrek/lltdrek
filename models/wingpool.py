@@ -76,8 +76,11 @@ class WingPool:
         self.G_dict[surface_name] = G
     
     def calculate_aoa_eff(self):
-        total_velocity = 1
-        aoa_i = np.arctan(np.dot(total_velocity, u_n[i]) / np.dot(total_velocity, u_a[i]))
+        for wing in self.wing_list:
+            total_velocity = self.total_velocity_dict[wing.surface_name]
+            u_n_i = self.wing.u_n
+            u_a_i = self.wing.u_a
+            aoa_i = np.arctan(np.dot(total_velocity, u_n_i) / np.dot(total_velocity, u_a_i))
 
     def get_total_dim_velocity(self, target_wing: Wing):
         v_ij_dict = self.ind_velocities_dict[target_wing.surface_name]
