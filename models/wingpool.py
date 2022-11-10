@@ -36,7 +36,7 @@ class WingPool:
     G_dict: Dict = field(init=False)
     total_velocity_dict: Dict = field(init=False)
     aoa_eff_dict: Dict = field(init=False)
-    complete_wing_pool: List = field(init=False)
+    complete_wing_pool: List[Wing] = field(init=False)
 
     def __post_init__(self):
         self.ind_velocities_dict = {}
@@ -77,11 +77,23 @@ class WingPool:
     
     def build_complete_wing_pool(self):
         '''
-        Method that builds a wing pool with mirrored wing objects. This 
+        Method that builds a wing pool with mirrored wing objects.
+        This list will be used in calculations
         '''
         for wing in self.wing_list:
             mirrored_wing = copy.copy(wing)
-            mirrored_wing.surface_name += "_mirrored" 
+            mirrored_wing.surface_name += "_mirrored"
+
+            # Mirror y-coordinate of required values
+            for i in range(mirrored_wing.N_panels):
+                mirrored_wing.u_a[1][i] *= -1
+                mirrored_wing.u_n[1][i] *= -1
+                mirrored_wing.collocation_points[1][i] *= -1
+                mirrored_wing.vertice_points[1][i] *= -1
+                mirrored_wing.cp_lengths[1][i] *= -1
+                mirrored_wing.cp_dsl[1][i] *= -1
+            mirrored_wing.vertice_points[1][-1] *= -1
+
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
 
@@ -127,6 +139,19 @@ class WingPool:
         '''
         TODO: solver2 equation
         '''
-        pass
+        J_matrix = []
+        for i, wing_i in enumerate(self.complete_wing_pool):
+            row_i = []
+            w_i = 1
+            w_i_abs = 1
+            v_n_i = 1
+            v_a_i = 1
+            C_l_alfa_i = 1
+            for j, wing_j in enumerate(self.complete_wing_pool):
+                # TODO: need to check when i = j, because a straight vortex induces no downwash on itself
+                column_j = 0
+                if wing_i.surface_name == wing_j.surface_name and i != j:
+                    column_j += 2 * w_i_abs
+            J_matrix.append(row_i)
 
 
