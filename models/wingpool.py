@@ -4,6 +4,7 @@ from models.flight_condition import FlightCondition
 from utils import velocity
 from dataclasses import dataclass, field
 import numpy as np
+import numpy.linalg as npla
 import copy
 
 '''
@@ -140,18 +141,30 @@ class WingPool:
         TODO: solver2 equation
         '''
         J_matrix = []
-        for i, wing_i in enumerate(self.complete_wing_pool):
-            row_i = []
-            w_i = 1
-            w_i_abs = 1
-            v_n_i = 1
-            v_a_i = 1
-            C_l_alfa_i = 1
-            for j, wing_j in enumerate(self.complete_wing_pool):
-                # TODO: need to check when i = j, because a straight vortex induces no downwash on itself
-                column_j = 0
-                if wing_i.surface_name == wing_j.surface_name and i != j:
-                    column_j += 2 * w_i_abs
-            J_matrix.append(row_i)
+        for wing_i in self.complete_wing_pool:
+            for i, cp_i in enumerate(wing_i.collocation_points):
+                total_dim_velocity = 1
+                row_i = []
+                w_i = np.cross(total_dim_velocity, wing_i.cp_dsl[i])
+                w_i_abs = npla.norm(w_i)
+                u_n_i = wing_i.u_n[i]
+                u_a_i = wing_i.u_a[i]
+                v_n_i = np.dot(total_dim_velocity, wing_i.u_n[i])
+                v_a_i = np.dot(total_dim_velocity, wing_i.u_a[i])
+                Cl_alpha_i = 1
+                G_i = 1
+                w_i_norm = npla.norm(w_i)
+                for wing_j in self.complete_wing_pool:
+                    for j, _ in enumerate(wing_j.collocation_points):
+                        v_ji = 1
+                        # TODO: need to check when i = j, because a straight vortex induces no downwash on itself
+                        column_j = 2 * np.dot(w_i,np.cross(v_ji,wing_i.cp_dsl[i]))*G_i / w_i_norm \
+                            - Cl_alpha_i * (v_a_i * np.dot(v_ji, u_n_i) - v_n_i * np.dot(v_ji, u_a_i)) /(v_a_i ** 2 + v_n_i ** 2)
+
+                        if wing_i.surface_name == wing_j.surface_name and i != j:
+                            column_j += 2 * w_i_abs
+                        
+                        row_i.append(column_j)
+                J_matrix.append(row_i)
 
 
