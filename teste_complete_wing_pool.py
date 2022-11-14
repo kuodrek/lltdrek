@@ -34,6 +34,7 @@ wingpool = WingPool(
 )
 
 wingpool.calculate_induced_velocities()
-wingpool.calculate_aoa_eff()
+wingpool.calculate_corrector_matrix()
+# wingpool.calculate_aoa_eff()
 
 a=1

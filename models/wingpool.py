@@ -47,7 +47,6 @@ class WingPool:
         self.complete_wing_pool = []
 
         self.build_complete_wing_pool()
-
         for _, wing in enumerate(self.complete_wing_pool):
             wing_name = wing.surface_name
             N_panels = wing.N_panels
@@ -61,20 +60,6 @@ class WingPool:
                 self.update_solution(G=G,surface_name=wing_name)
             else:
                 self.G_dict = self.initial_G
-
-    def calculate_induced_velocities(self):
-        v_inf = self.flight_condition.v_inf_array
-        for wing_cp in self.complete_wing_pool:
-            collocation_points = wing_cp.collocation_points
-            cp_macs = wing_cp.cp_macs
-            for wing_vp in self.complete_wing_pool:
-                vertice_points = wing_vp.vertice_points
-                v_ij_distr = velocity.get_induced_velocity_distribution(
-                    collocation_points, cp_macs, vertice_points, v_inf
-                )
-                self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
-
-        return self.ind_velocities_dict
     
     def build_complete_wing_pool(self):
         '''
@@ -87,13 +72,13 @@ class WingPool:
 
             # Mirror y-coordinate of required values
             for i in range(mirrored_wing.N_panels):
-                mirrored_wing.u_a[1][i] *= -1
-                mirrored_wing.u_n[1][i] *= -1
-                mirrored_wing.collocation_points[1][i] *= -1
-                mirrored_wing.vertice_points[1][i] *= -1
-                mirrored_wing.cp_lengths[1][i] *= -1
-                mirrored_wing.cp_dsl[1][i] *= -1
-            mirrored_wing.vertice_points[1][-1] *= -1
+                mirrored_wing.u_a[i][1] *= -1
+                mirrored_wing.u_n[i][1] *= -1
+                mirrored_wing.collocation_points[i][1] *= -1
+                mirrored_wing.vertice_points[i][1] *= -1
+                mirrored_wing.cp_lengths[i][1] *= -1
+                mirrored_wing.cp_dsl[i][1] *= -1
+            mirrored_wing.vertice_points[-1][1] *= -1
 
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
@@ -102,12 +87,28 @@ class WingPool:
         self.G_dict[surface_name] = G
     
     def calculate_aoa_eff(self):
+        '''
+        wip
+        '''
         for wing in self.wing_list:
             total_velocity = self.total_velocity_dict[wing.surface_name]
             u_n_i = wing.u_n
             u_a_i = wing.u_a
             aoa_i = np.arctan(np.dot(total_velocity, u_n_i) / np.dot(total_velocity, u_a_i))
             a=1
+
+    def calculate_induced_velocities(self):
+        v_inf = self.flight_condition.v_inf_array
+        for wing_cp in self.complete_wing_pool:
+            collocation_points = wing_cp.collocation_points
+            cp_macs = wing_cp.cp_macs
+            for wing_vp in self.complete_wing_pool:
+                vertice_points = wing_vp.vertice_points
+                v_ij_distr = velocity.get_induced_velocity_distribution(
+                    collocation_points, cp_macs, vertice_points, v_inf
+                )
+                self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
+        return self.ind_velocities_dict
 
     def get_total_dim_velocity(self, target_wing: Wing):
         '''
@@ -132,19 +133,38 @@ class WingPool:
 
     def calculate_spanwise_distribution(self):
         '''
-        TODO: solver1 equation
+        TODO: solver1 system of equations
+        F(G) = R
         '''
-        pass
+        array_dim = sum([wing.N_panels for wing in self.wing_list])
+        R_array = np.zeros([array_dim, 1])
+        for wing in self.wing_list:
+                G_list = self.G_dict[wing.surface_name]
+                total_velocity_list = self.total_velocity_dict[wing.surface_name]
+                for i, _ in enumerate(wing.collocation_points):
+                    total_dim_velocity = total
+                    norm_value = 1
+                    R_array = 2 * norm_value * G_list[i] - Cl_i
+        return 0
 
-    def calculate_corrector_matrix(self):
+    def calculate_corrector_matrix(self, R_array):
         '''
-        TODO: solver2 equation
+        Newton corrector system of equations
+        [J]delta_G = -R
         '''
-        J_matrix = []
+        matrix_dim = sum([wing.N_panels for wing in self.complete_wing_pool])
+        J_matrix = np.zeros([matrix_dim, matrix_dim])
+
+        i_glob = 0
         for wing_i in self.complete_wing_pool:
-            for i, cp_i in enumerate(wing_i.collocation_points):
-                total_dim_velocity = 1
-                row_i = []
+            G_list = self.G_dict[wing_i.surface_name]
+            total_velocity_list = self.total_velocity_dict[wing_i.surface_name]
+            for i, _ in enumerate(wing_i.collocation_points):
+                j_glob = 0
+                total_dim_velocity = total_velocity_list[i]
+                v_ji_distr_i = self.ind_velocities_dict[wing_i.surface_name]
+                G_i = G_list[i]
+
                 w_i = np.cross(total_dim_velocity, wing_i.cp_dsl[i])
                 w_i_abs = npla.norm(w_i)
                 u_n_i = wing_i.u_n[i]
@@ -152,19 +172,24 @@ class WingPool:
                 v_n_i = np.dot(total_dim_velocity, wing_i.u_n[i])
                 v_a_i = np.dot(total_dim_velocity, wing_i.u_a[i])
                 Cl_alpha_i = 1
-                G_i = 1
                 w_i_norm = npla.norm(w_i)
                 for wing_j in self.complete_wing_pool:
+                    v_ji_distr = v_ji_distr_i[wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
-                        v_ji = 1
-                        # TODO: need to check when i = j, because a straight vortex induces no downwash on itself
-                        column_j = 2 * np.dot(w_i,np.cross(v_ji,wing_i.cp_dsl[i]))*G_i / w_i_norm \
+                        v_ji = v_ji_distr[j][:]
+                        coef_ij = 2 * np.dot(w_i,np.cross(v_ji, wing_i.cp_dsl[i]))*G_i / w_i_norm \
                             - Cl_alpha_i * (v_a_i * np.dot(v_ji, u_n_i) - v_n_i * np.dot(v_ji, u_a_i)) /(v_a_i ** 2 + v_n_i ** 2)
 
                         if wing_i.surface_name == wing_j.surface_name and i != j:
-                            column_j += 2 * w_i_abs
+                            coef_ij += 2 * w_i_abs
                         
-                        row_i.append(column_j)
-                J_matrix.append(row_i)
+                        J_matrix[i_glob][j_glob] = coef_ij
+                        j_glob += 1
+                i_glob += 1
+
+        delta_G = npla.solve(J_matrix, -R_array)
+        return delta_G
+        
+
 
 
