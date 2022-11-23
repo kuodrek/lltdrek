@@ -15,25 +15,21 @@ class Simulation:
         pass
     
     def calculate_main_equation_simplified(self, wing_pool: WingPool, flight_condition: FlightCondition):
-        '''
-        TODO: simplified main equation
-        '''
         v_inf = flight_condition.v_inf_array
 
         matrix_dim = sum([wing.N_panels for wing in wing_pool.complete_wing_pool])
         A_matrix = np.zeros([matrix_dim, matrix_dim])
         B_matrix = np.zeros([matrix_dim, 1])
-        i_glob = 0
         ind_velocities_dict = wing_pool.ind_velocities_dict
+        i_glob = 0
         for wing_i in wing_pool.complete_wing_pool:
-                total_velocity_list = wing_pool.total_velocity_dict[wing_i.surface_name]
                 G_list_i = wing_pool.G_dict[wing_i.surface_name]
                 cp_dsl = wing_i.cp_dsl
                 u_n = wing_i.u_n
                 for i, _ in enumerate(wing_i.collocation_points):
                     G_i = G_list_i[i]
                     u_n_i = u_n[i]
-                    cross_product = 2 * npla.norm(np.cross(v_inf, cp_dsl[i]))
+                    A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf, cp_dsl[i]))
                     Cl_0_i = 1
                     Cl_alpha_i = 1
                     al_0_i = -Cl_0_i/Cl_alpha_i
@@ -46,10 +42,10 @@ class Simulation:
                         v_ji_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
                         for j, _ in enumerate(wing_j.collocation_points):
                             v_ji = v_ji_distr[i][j][:]
-                            sum_term = Cl_alpha_i*np.dot(v_ji, u_n_i)
-                            A_matrix[i_glob][j_glob] = 1
+                            A_matrix[i_glob][j_glob] += -1*Cl_alpha_i*np.dot(v_ji, u_n_i)
                             j_glob += 1
-        return 0
+        G_list = npla.solve(A_matrix, B_matrix)
+        return G_list
 
     def calculate_main_equation(self, wing_pool: WingPool):
         '''
@@ -66,8 +62,8 @@ class Simulation:
                 for i, _ in enumerate(wing.collocation_points):
                     total_dim_velocity = total
                     norm_value = 1
-                    R_array = 2 * norm_value * G_list[i] - Cl_i
-        return 0
+                    R_array[i] = 2 * norm_value * G_list[i] - Cl_i
+        return R_array
 
     def calculate_corrector_equation(self, wing_pool: WingPool, R_array):
         '''
