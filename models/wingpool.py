@@ -8,9 +8,11 @@ import numpy.linalg as npla
 import copy
 
 '''
+ind_velocities_list = [ind_velocities_dict_1, ind_velocities_dict_2, ...]
+
 ind_velocities_dict = {
     "surface_name": {
-        "surface_name": "v_ind_distr"
+        "surface_name": [[velocity_distribution_panel_1], [velocity_distribution_panel_2], ...]
     }
 }
 
@@ -32,12 +34,13 @@ aoa_eff_dict = {
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
-    initial_G: dict = None
+    initial_G: Dict = None
     ind_velocities_dict: Dict = field(init=False)
     G_dict: Dict = field(init=False)
     total_velocity_dict: Dict = field(init=False)
     aoa_eff_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
+    ind_velocities_list: List[Dict] = field(init=False)
 
     def __post_init__(self):
         self.ind_velocities_dict = {}
@@ -45,32 +48,36 @@ class WingPool:
         self.total_velocity_dict = {}
         self.aoa_eff_dict = {}
         self.complete_wing_pool = []
+        self.ind_velocities_list = []
 
         self.build_complete_wing_pool()
         for _, wing in enumerate(self.complete_wing_pool):
-            wing_name = wing.surface_name
-            N_panels = wing.N_panels
-
-            self.ind_velocities_dict[wing_name] = {}
-            self.total_velocity_dict[wing_name] = []
-            self.aoa_eff_dict[wing_name] = {}
+            self.ind_velocities_dict[wing.surface_name] = {}
+            self.total_velocity_dict[wing.surface_name] = []
+            self.aoa_eff_dict[wing.surface_name] = {}
             if self.initial_G == None:
-                self.G_dict[wing_name] = []
-                G = [1 for _ in range(N_panels)]
-                self.update_solution(G=G,surface_name=wing_name)
+                self.G_dict[wing.surface_name] = [1 for _ in range(wing.N_panels)]
             else:
-                self.G_dict = self.initial_G
+                for surface_name, G_list in self.initial_G.items():
+                    self.G_dict[surface_name] = G_list
+                    self.G_dict[surface_name+"_mirrored"] = G_list
+        
+        for v_inf_array in self.flight_condition.v_inf_array:
+            ind_velocities_dict = self.calculate_induced_velocities(v_inf_array)
+            self.ind_velocities_list.append(ind_velocities_dict)
+
     
     def build_complete_wing_pool(self):
         '''
         Method that builds a wing pool with mirrored wing objects.
-        This list will be used in calculations
+        This is the list that will be used in calculations
         '''
         for wing in self.wing_list:
             mirrored_wing = copy.copy(wing)
             mirrored_wing.surface_name += "_mirrored"
 
             # Mirror y-coordinate of required values
+            # TODO: do these operations using numpy logic
             for i in range(mirrored_wing.N_panels):
                 mirrored_wing.u_a[i][1] *= -1
                 mirrored_wing.u_n[i][1] *= -1
@@ -83,113 +90,83 @@ class WingPool:
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
 
-    def update_solution(self, G, surface_name: str):
-        self.G_dict[surface_name] = G
-    
-    def calculate_aoa_eff(self):
+    def update_solution(self, G_solution) -> None:
         '''
-        wip
+        Method that splits the G_solution list, obtained by solving the 
+        the main equations, into separate solution lists for each wing in the
+        complete_wing_pool
+        '''
+        global_counter = 0
+        for wing in self.complete_wing_pool:
+            counter = 0
+            G_list = []
+            while counter < wing.N_panels:
+                G_list.append(G_solution[global_counter])
+                counter += 1
+                global_counter += 1
+            self.G_dict[wing.surface_name] = G_list
+    
+    def calculate_aoa_eff(self, total_velocity_dict: dict) -> dict:
+        '''
+        calcular o angulo de ataque efetivo de cada painel de cada asa
+        a ideia é utilizar a lógica do numpy pra acelerar os cálculos
+        precisa ser verificado se isso tá funcionando
         '''
         for wing in self.wing_list:
-            total_velocity = self.total_velocity_dict[wing.surface_name]
-            u_n_i = wing.u_n
-            u_a_i = wing.u_a
-            aoa_i = np.arctan(np.dot(total_velocity, u_n_i) / np.dot(total_velocity, u_a_i))
-            a=1
+            self.aoa_eff_dict[wing.surface_name] = np.arctan(np.dot(total_velocity_dict[wing.surface_name], wing.u_n) / np.dot(total_velocity_dict[wing.surface_name], wing.u_a))
+            self.aoa_eff_dict[wing.surface_name+"_mirrored"] = self.aoa_eff_dict[wing.surface_name]
 
-    def calculate_induced_velocities(self):
-        v_inf = self.flight_condition.v_inf_array
+    def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
+        # Essa função calcula tudo para um angulo de ataque e é chamada para cada aoa no __post_init__
         for wing_cp in self.complete_wing_pool:
             collocation_points = wing_cp.collocation_points
             cp_macs = wing_cp.cp_macs
             for wing_vp in self.complete_wing_pool:
                 vertice_points = wing_vp.vertice_points
                 v_ij_distr = velocity.get_induced_velocity_distribution(
-                    collocation_points, cp_macs, vertice_points, v_inf
+                    collocation_points, cp_macs, vertice_points, v_inf_array
                 )
                 self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
         return self.ind_velocities_dict
 
-    def get_total_dim_velocity(self, target_wing: Wing):
+    def calculate_total_velocity(self, v_inf_array: np.ndarray):
         '''
-        Method that calculates the sum of vij * G  + v_inf of a target wing
+        WIP
+        Method that calculates the sum of vij * G  + v_inf of all wings
         '''
-        v_ij_dict = self.ind_velocities_dict[target_wing.surface_name]
-        v_inf_array = self.flight_condition.v_inf_array
-        v_total = v_inf_array
+        # É NECESSÁRIO ACHAR O INDICE DA DISTRIBUIÇAO DE VELOCIDADES CORRETO
+        aoa_index = 0
+        for idx, array in np.ndenumerate(self.flight_condition.v_inf_array):
+            if array == v_inf_array:
+                aoa_index = idx
+        ind_velocities_dict = self.ind_velocities_list[aoa_index]
 
+        total_velocity_panel = v_inf_array
         # Iterate through each wing
         for _, wing in enumerate(self.wing_list):
-            name = wing.surface_name
-            G = self.G_dict[name]
-            v_ij_distr = v_ij_dict[name]
+            total_velocity_distr = []
+            G = self.G_dict[wing.surface_name]
+            v_ij_distr = ind_velocities_dict[wing.surface_name]
             # Iterate through each panel of the target wing
             for _, panel in enumerate(v_ij_distr):
                 # Iterate through each velocity induced by current wing
                 for j, ind_velocity in enumerate(panel):
-                    v_total += ind_velocity * G[j]
+                    total_velocity_panel += ind_velocity * G[j]
+                total_velocity_distr.append(total_velocity_panel)
+            self.total_velocity_dict[wing.surface_name] = total_velocity_distr
 
-        return v_total
-
-    def calculate_spanwise_distribution(self):
-        '''
-        TODO: solver1 system of equations
-        F(G) = R
-        '''
-        array_dim = sum([wing.N_panels for wing in self.wing_list])
-        R_array = np.zeros([array_dim, 1])
-        for wing in self.wing_list:
-                G_list = self.G_dict[wing.surface_name]
-                total_velocity_list = self.total_velocity_dict[wing.surface_name]
-                for i, _ in enumerate(wing.collocation_points):
-                    total_dim_velocity = total
-                    norm_value = 1
-                    R_array = 2 * norm_value * G_list[i] - Cl_i
-        return 0
-
-    def calculate_corrector_matrix(self, R_array):
-        '''
-        Newton corrector system of equations
-        [J]delta_G = -R
-        '''
-        matrix_dim = sum([wing.N_panels for wing in self.complete_wing_pool])
-        J_matrix = np.zeros([matrix_dim, matrix_dim])
-
-        i_glob = 0
+        # validar se tá certo
         for wing_i in self.complete_wing_pool:
-            G_list = self.G_dict[wing_i.surface_name]
-            total_velocity_list = self.total_velocity_dict[wing_i.surface_name]
-            for i, _ in enumerate(wing_i.collocation_points):
-                j_glob = 0
-                total_dim_velocity = total_velocity_list[i]
-                v_ji_distr_i = self.ind_velocities_dict[wing_i.surface_name]
-                G_i = G_list[i]
-
-                w_i = np.cross(total_dim_velocity, wing_i.cp_dsl[i])
-                w_i_abs = npla.norm(w_i)
-                u_n_i = wing_i.u_n[i]
-                u_a_i = wing_i.u_a[i]
-                v_n_i = np.dot(total_dim_velocity, wing_i.u_n[i])
-                v_a_i = np.dot(total_dim_velocity, wing_i.u_a[i])
-                Cl_alpha_i = 1
-                w_i_norm = npla.norm(w_i)
-                for wing_j in self.complete_wing_pool:
-                    v_ji_distr = v_ji_distr_i[wing_j.surface_name]
-                    for j, _ in enumerate(wing_j.collocation_points):
-                        v_ji = v_ji_distr[j][:]
-                        coef_ij = 2 * np.dot(w_i,np.cross(v_ji, wing_i.cp_dsl[i]))*G_i / w_i_norm \
-                            - Cl_alpha_i * (v_a_i * np.dot(v_ji, u_n_i) - v_n_i * np.dot(v_ji, u_a_i)) /(v_a_i ** 2 + v_n_i ** 2)
-
-                        if wing_i.surface_name == wing_j.surface_name and i != j:
-                            coef_ij += 2 * w_i_abs
-                        
-                        J_matrix[i_glob][j_glob] = coef_ij
-                        j_glob += 1
-                i_glob += 1
-
-        delta_G = npla.solve(J_matrix, -R_array)
-        return delta_G
-        
-
-
-
+            for wing_j in self.complete_wing_pool:
+                G = self.G_dict[wing_i.surface_name]
+                v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
+                total_velocity_distr = [] # velocidades de todos os paineis de uma asa
+                for panel_i, v_ij_distr_panel in np.ndenumerate(v_ij_distr):
+                    total_velocity_i = v_inf_array
+                    # numpy logic: VALIDAR
+                    # total_velocity_i += v_ij_distr[:]
+                    for v_ij in v_ij_distr_panel:
+                        total_velocity_i += v_ij
+                    total_velocity_distr[panel_i] = total_velocity_i
+            self.total_velocity_dict[wing_i.surface_name] = total_velocity_distr
+                
