@@ -24,7 +24,7 @@ flight_condition = FlightCondition(
     V_inf=15,
     nu=1.5e-5,
     rho=1.225,
-    aoa = [1],
+    aoa = [1, 2 ,3],
     ground_effect_check=False
 )
 
@@ -33,8 +33,6 @@ wingpool = WingPool(
     flight_condition=flight_condition
 )
 
-wingpool.calculate_induced_velocities()
-wingpool.calculate_corrector_matrix()
-# wingpool.calculate_aoa_eff()
+# wingpool.calculate_induced_velocities()
 
 a=1
