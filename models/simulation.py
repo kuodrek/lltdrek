@@ -48,10 +48,10 @@ class Simulation:
         return G_solution
 
     def calculate_main_equation(self, total_velocity_dict: dict, aoa_eff_dict: dict) -> np.ndarray:
-        '''
+        """
         Main system of equations -
         F(G) = R
-        '''
+        """
         array_dim = sum([wing.N_panels for wing in self.wing_pool.wing_list])
         R_array = np.zeros([array_dim, 1])
         for wing in self.wing_pool.wing_list:
@@ -65,10 +65,10 @@ class Simulation:
         return R_array
 
     def calculate_corrector_equation(self, R_array: np.ndarray) -> np.ndarray:
-        '''
+        """
         Newton corrector system of equations
         [J]delta_G = -R
-        '''
+        """
         J_matrix = np.zeros([self.matrix_dim, self.matrix_dim])
 
         i_glob = 0
@@ -107,13 +107,13 @@ class Simulation:
         return delta_G
 
     def run_simulation(self):
-        '''
+        """
         Método para rodar a simulação principal do lltdrek
         O chute inicial da lista G já está presente na wing_pool
         A simulação usa o método da convergencia acelerada naturalmente,
         onde o resultado da simulação anterior é o primeiro chute da simulação atual,
         acelerando a convergência
-        '''
+        """
         iteration = 0
         G_solution_list = []
         for aoa in self.wing_pool.flight_condition.aoa:
