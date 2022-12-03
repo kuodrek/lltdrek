@@ -1,0 +1,14 @@
+# Pelo amor de deus veja isso regularmente
+
+## 3/12/2022
+
+- Wingpool
+  - [ ] Terminar atualizaçao de aoa_eff
+  - [ ] Terminar atualização de velocidade total
+- Simulaçao
+  - [ ] Ajustar lookup do Cl_i e Cl_alpha_i
+  - [ ] Terminar métodos de simulação
+- Wing
+  - [ ] Criar metodo para pegar dados dos perfis
+- pos-processamento
+  - [ ] Criar modelo e métodos
