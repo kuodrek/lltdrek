@@ -7,6 +7,7 @@ import numpy as np
 import numpy.linalg as npla
 import copy
 
+
 """
 ind_velocities_list = [ind_velocities_dict_1, ind_velocities_dict_2, ...]
 
@@ -62,7 +63,7 @@ class WingPool:
                     self.G_dict[surface_name] = G_list
                     self.G_dict[surface_name+"_mirrored"] = G_list
         
-        for v_inf_array in self.flight_condition.v_inf_array:
+        for v_inf_array in self.flight_condition.v_inf_list:
             ind_velocities_dict = self.calculate_induced_velocities(v_inf_array)
             self.ind_velocities_list.append(ind_velocities_dict)
 
@@ -90,6 +91,7 @@ class WingPool:
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
 
+
     def update_solution(self, G_solution) -> None:
         """
         Method that splits the G_solution list, obtained by solving the 
@@ -106,15 +108,19 @@ class WingPool:
                 global_counter += 1
             self.G_dict[wing.surface_name] = G_list
     
+
     def calculate_aoa_eff(self, total_velocity_dict: dict) -> dict:
         """
         calcular o angulo de ataque efetivo de cada painel de cada asa
         a ideia é utilizar a lógica do numpy pra acelerar os cálculos
         precisa ser verificado se isso tá funcionando
         """
+        # TODO: a vetorizaçao não funciona nesse caso, trocar pra for loop
         for wing in self.wing_list:
-            self.aoa_eff_dict[wing.surface_name] = np.arctan(np.dot(total_velocity_dict[wing.surface_name], wing.u_n) / np.dot(total_velocity_dict[wing.surface_name], wing.u_a))
+            self.aoa_eff_dict[wing.surface_name] = np.arctan(np.dot(total_velocity_dict[wing.surface_name][:], wing.u_n[:]) / np.dot(total_velocity_dict[wing.surface_name][:], wing.u_a[:]))
             self.aoa_eff_dict[wing.surface_name+"_mirrored"] = self.aoa_eff_dict[wing.surface_name]
+        return self
+    
 
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
         # Essa função calcula tudo para um angulo de ataque e é chamada para cada aoa no __post_init__
@@ -129,6 +135,7 @@ class WingPool:
                 self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
         return self.ind_velocities_dict
 
+
     def calculate_total_velocity(self, v_inf_array: np.ndarray):
         """
         WIP
@@ -137,13 +144,14 @@ class WingPool:
         - Faz sentido usar self.G_dict? Não deveria ser um input pra esse método assim como v_inf_array?
         """
         aoa_index = np.nan
-        for idx, array in np.ndenumerate(self.flight_condition.v_inf_array):
-            if array == v_inf_array:
+        for idx, array in enumerate(self.flight_condition.v_inf_list):
+            if np.array_equal(v_inf_array, array):
                 aoa_index = idx
         if aoa_index == np.nan:
             raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
         
         ind_velocities_dict = self.ind_velocities_list[aoa_index]
+
 
         # validar se tá certo
         for wing_i in self.complete_wing_pool:
@@ -151,12 +159,12 @@ class WingPool:
                 G = self.G_dict[wing_j.surface_name]
                 v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
                 total_velocity_distr = np.zeros((wing_i.N_panels, 3)) # ver se não vai ter um off-by-one error aqui rsrs
-                for panel_i, v_ij_distr_panel in np.ndenumerate(v_ij_distr):
+                for panel_i, v_ij_distr_panel in enumerate(v_ij_distr):
                     total_velocity_i = v_inf_array
                     # numpy logic: VALIDAR
                     # total_velocity_i += v_ij_distr[:]
-                    for panel_j, v_ij in np.ndenumerate(v_ij_distr_panel):
+                    for panel_j, v_ij in enumerate(v_ij_distr_panel):
                         total_velocity_i += v_ij * G[panel_j]
                     total_velocity_distr[panel_i][:] = total_velocity_i
             self.total_velocity_dict[wing_i.surface_name] = total_velocity_distr
-                
+        return self.total_velocity_dict
