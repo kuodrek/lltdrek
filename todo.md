@@ -20,7 +20,7 @@
   - [ ] Trocar prints por logging
   - [ ] Implementar error handling
   - [ ] Avaliar o que é usado de lista / ndarray e padronizar na medida do possível
-- geral
+- Geral
   - [ ] Deixar tudo em inglês
   - [ ] Documentar os métodos
   - [ ] Criar documentação
