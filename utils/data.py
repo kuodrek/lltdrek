@@ -6,13 +6,13 @@ AOA_POLYFIT_MIN = 0
 AOA_POLYFIT_MAX = 8
 
 
-def load_folder(folder_name: str, data_dict: dict = None):
+def load_folder(folder_name: str):
     # Get full directory to lookup files
     current_dir = os.path.abspath(os.getcwd())
     target_dir = os.path.join(current_dir, folder_name)
     files_list = []
     for (dir_path, _, filenames) in os.walk(target_dir):
-        files_full_path = [(dir_path+'/'+file) for file in filenames]
+        files_full_path = [(dir_path+"/"+file) for file in filenames]
         files_list.append(files_full_path)
     
     # Transform list of lists into a flat list
@@ -20,21 +20,21 @@ def load_folder(folder_name: str, data_dict: dict = None):
     txt_list = []
     dat_list = []
     for file in files_flat_list:
-        file_extension = file.split('.')[-1]
-        if file_extension == 'txt': txt_list.append(file)
-        else: dat_list.append(file)
+        file_extension = file.split(".")[-1]
+        if file_extension == "txt": txt_list.append(file)
+        elif file_extension == "dat": dat_list.append(file)
     
     airfoils_data_dict = {}
     for file in txt_list:
-        airfoil_name = file.split('/')[-1].split('.')[0]
+        airfoil_name = file.split("/")[-1].split(".")[0]
         airfoil_data = cl_file_to_dict(file)
         airfoils_data_dict[airfoil_name] = airfoil_data
 
     airfoils_dat_dict = {}
     for file in dat_list:
-        airfoil_name = file.split('/')[-1].split('.')[0]
+        airfoil_name = file.split("/")[-1].split(".")[0]
         dat_list = dat_file_to_dict(file)
-        airfoils_data_dict[airfoil_name] = dat_list
+        airfoils_dat_dict[airfoil_name] = dat_list
     
     return airfoils_data_dict, airfoils_dat_dict
 
@@ -42,19 +42,19 @@ def load_folder(folder_name: str, data_dict: dict = None):
 
 def cl_file_to_dict(file_path: str):
     airfoil_data_dict = {}
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         while True:
             line = f.readline()
-            if line == '': break
-            reynolds = line.rstrip().split(',')[-1]
+            if line == "": break
+            reynolds = line.rstrip().split(",")[-1]
             cm0_line = f.readline()
-            cm0 = float(cm0_line.rstrip().split(',')[-1])
+            cm0 = float(cm0_line.rstrip().split(",")[-1])
             cl_list = []
             while True:
                 cl_line = f.readline()
-                if cl_line == '\n' or cl_line == '': break
+                if cl_line == "\n" or cl_line == "": break
                 else:
-                    cl_line = cl_line.rstrip().split(',')
+                    cl_line = cl_line.rstrip().split(",")
                     cl_list.append([float(value) for value in cl_line])
             cl_linear_coefs = get_linear_coefs(cl_list)
             airfoil_data_dict[reynolds] = {
@@ -90,5 +90,5 @@ def get_linear_coefs(cl_list: list):
         
 
 def xfoil_file_to_cl_file(file_path: str):
-    # To be implemented
+    # TODO: implementar
     pass
