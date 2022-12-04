@@ -38,24 +38,18 @@ class WingPool:
     initial_G: Dict = None
     ind_velocities_dict: Dict = field(init=False)
     G_dict: Dict = field(init=False)
-    total_velocity_dict: Dict = field(init=False)
-    aoa_eff_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
     ind_velocities_list: List[Dict] = field(init=False)
 
     def __post_init__(self):
         self.ind_velocities_dict = {}
         self.G_dict = {}
-        self.total_velocity_dict = {}
-        self.aoa_eff_dict = {}
         self.complete_wing_pool = []
         self.ind_velocities_list = []
 
         self.build_complete_wing_pool()
         for _, wing in enumerate(self.complete_wing_pool):
             self.ind_velocities_dict[wing.surface_name] = {}
-            self.total_velocity_dict[wing.surface_name] = []
-            self.aoa_eff_dict[wing.surface_name] = {}
             if self.initial_G == None:
                 self.G_dict[wing.surface_name] = [1 for _ in range(wing.N_panels)]
             else:
@@ -78,7 +72,7 @@ class WingPool:
             mirrored_wing.surface_name += "_mirrored"
 
             # Mirror y-coordinate of required values
-            # TODO: do these operations using numpy logic
+            # TODO: do these operations using vectorization
             for i in range(mirrored_wing.N_panels):
                 mirrored_wing.u_a[i][1] *= -1
                 mirrored_wing.u_n[i][1] *= -1
@@ -107,19 +101,7 @@ class WingPool:
                 counter += 1
                 global_counter += 1
             self.G_dict[wing.surface_name] = G_list
-    
-
-    def calculate_aoa_eff(self, total_velocity_dict: dict) -> dict:
-        """
-        calcular o angulo de ataque efetivo de cada painel de cada asa
-        a ideia é utilizar a lógica do numpy pra acelerar os cálculos
-        precisa ser verificado se isso tá funcionando
-        """
-        # TODO: a vetorizaçao não funciona nesse caso, trocar pra for loop
-        for wing in self.wing_list:
-            self.aoa_eff_dict[wing.surface_name] = np.arctan(np.dot(total_velocity_dict[wing.surface_name][:], wing.u_n[:]) / np.dot(total_velocity_dict[wing.surface_name][:], wing.u_a[:]))
-            self.aoa_eff_dict[wing.surface_name+"_mirrored"] = self.aoa_eff_dict[wing.surface_name]
-        return self
+        return self.G_dict
     
 
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
@@ -136,7 +118,7 @@ class WingPool:
         return self.ind_velocities_dict
 
 
-    def calculate_total_velocity(self, v_inf_array: np.ndarray):
+    def calculate_total_velocity(self, v_inf_array: np.ndarray, G_dict: dict):
         """
         WIP
         Method that calculates the sum of vij * G  + v_inf of all wings
@@ -151,12 +133,11 @@ class WingPool:
             raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
         
         ind_velocities_dict = self.ind_velocities_list[aoa_index]
-
-
+        total_velocity_dict = {}
         # validar se tá certo
         for wing_i in self.complete_wing_pool:
             for wing_j in self.complete_wing_pool:
-                G = self.G_dict[wing_j.surface_name]
+                G = G_dict[wing_j.surface_name]
                 v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
                 total_velocity_distr = np.zeros((wing_i.N_panels, 3)) # ver se não vai ter um off-by-one error aqui rsrs
                 for panel_i, v_ij_distr_panel in enumerate(v_ij_distr):
@@ -166,5 +147,21 @@ class WingPool:
                     for panel_j, v_ij in enumerate(v_ij_distr_panel):
                         total_velocity_i += v_ij * G[panel_j]
                     total_velocity_distr[panel_i][:] = total_velocity_i
-            self.total_velocity_dict[wing_i.surface_name] = total_velocity_distr
-        return self.total_velocity_dict
+            total_velocity_dict[wing_i.surface_name] = total_velocity_distr
+        return total_velocity_dict
+
+
+    def calculate_aoa_eff(self, total_velocity_dict: dict) -> dict:
+        """
+        calcular o angulo de ataque efetivo de cada painel de cada asa
+        """
+        aoa_eff_dict = {}
+        for wing in self.wing_list:
+            total_velocity_distr = total_velocity_dict[wing.surface_name]
+            aoa_eff_distr = np.zeros(wing.N_panels)
+            for idx, velocity in enumerate(total_velocity_distr):
+                aoa_eff_distr[idx] = np.arctan(np.dot(velocity, wing.u_n[idx]) / np.dot(velocity, wing.u_a[idx]))
+
+            aoa_eff_dict[wing.surface_name] = aoa_eff_distr
+            aoa_eff_dict[wing.surface_name+"_mirrored"] = aoa_eff_distr
+        return aoa_eff_dict
