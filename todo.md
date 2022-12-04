@@ -1,17 +1,19 @@
 # Pelo amor de deus veja isso regularmente
 
-## 3/12/2022
-
 - Wingpool
-  - [ ] Terminar atualizaçao de aoa_eff
-  - [ ] Terminar atualização de velocidade total
+  - [x] Terminar atualizaçao de aoa_eff
+  - [x] Terminar atualização de velocidade total
+  - [ ] Documentar classe e seus métodos
 - Simulaçao
   - [ ] Ajustar lookup do Cl_i e Cl_alpha_i
-  - [ ] Terminar métodos de simulação
+  - [x] Terminar métodos de simulação
+  - [ ] Documentar classe e seus métodos
 - Wing
-  - [ ] Criar metodo para pegar dados dos perfis
+  - [x] Criar metodo para pegar dados dos perfis
+  - [ ] Documentar classe e seus métodos
 - pos-processamento
   - [ ] Criar modelo e métodos
+  - [ ] Documentar classe e seus métodos
 - Validação
   - [ ] Validar com dados experimentais (usar refs do meu TCC)
   - [ ] Validar múltiplas superfícies com outros programas (AVL, XFLR5, tornado, etc)
@@ -20,6 +22,9 @@
   - [ ] Trocar prints por logging
   - [ ] Implementar error handling
   - [ ] Avaliar o que é usado de lista / ndarray e padronizar na medida do possível
+- Utils
+  - lookup
+    - [ ] Ajustar lookup de Cl com o atributo wing.cp_airfoils
 - Geral
   - [ ] Deixar tudo em inglês
   - [ ] Documentar os métodos
