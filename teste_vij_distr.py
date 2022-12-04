@@ -43,7 +43,7 @@ flight_condition = FlightCondition(
     ground_effect_check=False
 )
 
-v_inf = flight_condition.v_inf_array
+v_inf = flight_condition.v_inf_list
 
 # Testing distribution of induced velocities
 v_ij_distr_self = velocity.get_induced_velocity_distribution(asa.collocation_points, asa.cp_macs, asa.vertice_points, v_inf)

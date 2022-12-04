@@ -1,3 +1,4 @@
+# proof of concept do método WingPool.update_solution
 complete_wing_pool = [3, 4, 10]
 total_value = sum(complete_wing_pool)
 G_solution = [i+1 for i in range(total_value)]
