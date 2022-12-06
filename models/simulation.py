@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from models.wingpool import WingPool
 import numpy as np
 import numpy.linalg as npla
-
+from utils.lookup import get_airfoil_data, get_linear_data
 
 @dataclass
 class Simulation:
