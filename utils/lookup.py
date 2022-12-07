@@ -63,9 +63,9 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
                 cl_data_ii = airfoil_data_dict[reynolds_list_str[i+1]]["cl_list"]
 
                 cl_i = aoa_list_lookup(cl_data_i, aoa) if cl_alpha_check is False \
-                    else get_non_linear_cl_alpha(cl_data, aoa)
+                    else get_non_linear_cl_alpha(cl_data_i, aoa)
                 cl_ii = aoa_list_lookup(cl_data_ii, aoa) if cl_alpha_check is False \
-                    else get_non_linear_cl_alpha(cl_data, aoa)
+                    else get_non_linear_cl_alpha(cl_data_ii, aoa)
                 
                 cl = (cl_ii - cl_i)/(re_ii - re_i) * (reynolds_number - re_i) + cl_i
                 break
@@ -161,19 +161,24 @@ def get_linear_data(
     # dados = airfoil_data["airfoil_name"]["reynolds_number"]["cl_alpha"]
     reynolds_list_str = list(airfoil_data[airfoil_root])
     reynolds_list = [float(reynolds) for reynolds in reynolds_list_str]
-    reynolds_number = str(reynolds_list[min(range(len(reynolds_list)), key = lambda i: abs(reynolds_list[i]-cp_reynolds))])
+
+    reynolds_dict_translation = {}
+    for i, reynolds in enumerate(reynolds_list):
+        reynolds_dict_translation[reynolds] = reynolds_list_str[i]
+    reynolds_number = reynolds_list[min(range(len(reynolds_list)), key = lambda i: abs(reynolds_list[i]-cp_reynolds))]
+    reynolds_key = reynolds_dict_translation[reynolds_number]
 
     if len(cp_airfoil[1]) > 1:
         merge_parameter = cp_airfoil[0]
         airfoil_tip = cp_airfoil[1][1]
 
-        cl_alpha_root = airfoil_data[reynolds_number][airfoil_root]["cl_alpha"]
-        cl0_root = airfoil_data[reynolds_number][airfoil_root]["cl0"]
-        cm0_root = airfoil_data[reynolds_number][airfoil_root]["cm0"]
+        cl_alpha_root = airfoil_data[airfoil_root][reynolds_key]["cl_alpha"]
+        cl0_root = airfoil_data[airfoil_root][reynolds_key]["cl0"]
+        cm0_root = airfoil_data[airfoil_root][reynolds_key]["cm0"]
 
-        cl_alpha_tip = airfoil_data[reynolds_number][airfoil_tip]["cl_alpha"]
-        cl0_tip = airfoil_data[reynolds_number][airfoil_tip]["cl0"]
-        cm0_tip = airfoil_data[reynolds_number][airfoil_tip]["cm0"]
+        cl_alpha_tip = airfoil_data[airfoil_tip][reynolds_key]["cl_alpha"]
+        cl0_tip = airfoil_data[airfoil_tip][reynolds_key]["cl0"]
+        cm0_tip = airfoil_data[airfoil_tip][reynolds_key]["cm0"]
         
 
         cl_alpha = cl_alpha_root * merge_parameter + cl_alpha_tip * (1 - merge_parameter)
@@ -181,9 +186,9 @@ def get_linear_data(
         cm0 = cm0_root * merge_parameter + cm0_tip * (1 - merge_parameter)
     else:
         airfoil = airfoil_root
-        cl_alpha = airfoil_data[reynolds_number][airfoil]["cl_alpha"]
-        cl0 = airfoil_data[reynolds_number][airfoil]["cl0"]
-        cm0 = airfoil_data[reynolds_number][airfoil]["cm0"]
+        cl_alpha = airfoil_data[airfoil][reynolds_key]["cl_alpha"]
+        cl0 = airfoil_data[airfoil][reynolds_key]["cl0"]
+        cm0 = airfoil_data[airfoil][reynolds_key]["cm0"]
 
     linear_data = {
         "cl_alpha": cl_alpha,
