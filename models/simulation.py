@@ -26,7 +26,7 @@ class Simulation:
         for wing_i in self.wing_pool.complete_wing_pool:
                 for i, _ in enumerate(wing_i.collocation_points):
                     A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, wing_i.cp_dsl[i]))
-                    linear_data = get_linear_data(wing_i.cp_airfoil[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
+                    linear_data = get_linear_data(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
                     Cl_0_i = linear_data["cl0"] * np.pi / 180
                     Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
                     al_0_i = -Cl_0_i/Cl_alpha_i
@@ -38,7 +38,7 @@ class Simulation:
                         v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
                         for j, _ in enumerate(wing_j.collocation_points):
                             v_ij = v_ij_distr[i][j]
-                            A_matrix[i_glob][j_glob] += -1*Cl_alpha_i*np.dot(v_ij, wing.u_n[i])
+                            A_matrix[i_glob][j_glob] += -1*Cl_alpha_i*np.dot(v_ij, wing_i.u_n[i])
                             j_glob += 1
                     i_glob += 1
         G_solution = npla.solve(A_matrix, B_matrix)
@@ -58,9 +58,9 @@ class Simulation:
                 for i, _ in enumerate(wing.collocation_points):
                     Cl_i = 1 * aoa_eff_distr[i] # TODO: Chamar a função de lookup
                     Cl_i = get_airfoil_data(
-                        wing.cp_airfoil[i],
+                        wing.cp_airfoils[i],
                         wing.cp_reynolds[i],
-                        wing.aoa_eff_distr[i],
+                        aoa_eff_distr[i],
                         wing.airfoil_data,
                         cl_alpha_check = False
                     )
@@ -87,6 +87,7 @@ class Simulation:
         for wing_i in self.wing_pool.complete_wing_pool:
             G_distr = G_dict[wing_i.surface_name]
             total_velocity_distr = total_velocity_dict[wing_i.surface_name]
+            aoa_eff_distr = aoa_eff_dict[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
                 j_glob = 0
 
@@ -97,10 +98,10 @@ class Simulation:
                 v_n_i = np.dot(total_velocity_distr[i], wing_i.u_n[i])
                 v_a_i = np.dot(total_velocity_distr[i], wing_i.u_a[i])
                 Cl_alpha_i = get_airfoil_data(
-                        wing.cp_airfoil[i],
-                        wing.cp_reynolds[i],
-                        wing.aoa_eff_distr[i],
-                        wing.airfoil_data,
+                        wing_i.cp_airfoils[i],
+                        wing_i.cp_reynolds[i],
+                        aoa_eff_distr[i],
+                        wing_i.airfoil_data,
                         cl_alpha_check = True
                     ) * 180 / np.pi
                 w_i_norm = npla.norm(w_i)
@@ -122,7 +123,7 @@ class Simulation:
         return delta_G
 
 
-    def run_simulation(self):
+    def run_simulation(self) -> list:
         """
         Método para rodar a simulação principal do lltdrek
         O chute inicial da lista G já está presente na wing_pool
@@ -184,3 +185,4 @@ class Simulation:
                         print(f"Found solution for angle {aoa}")
                         break
             aoa_history_list.append(G_history_list)
+        return G_solution_list
