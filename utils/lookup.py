@@ -153,7 +153,10 @@ def get_linear_data(
     cp_reynolds: float,
     airfoil_data: dict
     ) -> dict:
-
+    """
+    Função que realizar o lookup nos dados lineares
+    Número de Reynolds utilizado é o mais próximo de cp_reynolds
+    """
     airfoil_root = cp_airfoil[1][0]
     # dados = airfoil_data["airfoil_name"]["reynolds_number"]["cl_alpha"]
     reynolds_list_str = list(airfoil_data[airfoil_root])
