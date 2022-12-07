@@ -5,7 +5,7 @@
   - [x] Terminar atualização de velocidade total
   - [ ] Documentar classe e seus métodos
 - Simulaçao
-  - [ ] Ajustar lookup do Cl_i e Cl_alpha_i
+  - [x] Ajustar lookup do Cl_i e Cl_alpha_i
   - [x] Terminar métodos de simulação
   - [ ] Documentar classe e seus métodos
 - Wing
@@ -26,6 +26,7 @@
   - lookup
     - [ ] Ajustar lookup de Cl com o atributo wing.cp_airfoils
 - Geral
+  - [ ] **IMPLEMENTAR EFEITO SOLO**
   - [ ] Deixar tudo em inglês
   - [ ] Documentar os métodos
   - [ ] Criar documentação
