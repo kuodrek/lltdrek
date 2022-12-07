@@ -51,6 +51,7 @@ class Simulation:
         F(G) = R
         """
         R_array = np.zeros(self.matrix_dim)
+        i_glob = 0
         for wing in self.wing_pool.complete_wing_pool:
                 aoa_eff_distr = aoa_eff_dict[wing.surface_name]
                 G_list = G_dict[wing.surface_name]
@@ -65,7 +66,8 @@ class Simulation:
                         cl_alpha_check = False
                     )
                     norm_value = npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i]))
-                    R_array[i] = 2 * norm_value * G_list[i] - Cl_i
+                    R_array[i_glob] = 2 * norm_value * G_list[i] - Cl_i
+                    i_glob += 1
         return R_array
 
 
@@ -183,6 +185,7 @@ class Simulation:
                     if abs(R_array.max()) < self.max_residual:
                         G_solution_list.append(self.wing_pool.G_dict)
                         print(f"Found solution for angle {aoa}")
+                        print(f"number of iterations: {iteration}")
                         break
             aoa_history_list.append(G_history_list)
         return G_solution_list
