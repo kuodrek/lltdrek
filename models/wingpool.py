@@ -76,6 +76,8 @@ class WingPool:
             for i in range(mirrored_wing.N_panels):
                 mirrored_wing.u_a[i][1] *= -1
                 mirrored_wing.u_n[i][1] *= -1
+                mirrored_wing.u_s[i][0] *= -1
+                mirrored_wing.u_s[i][2] *= -1
                 mirrored_wing.collocation_points[i][1] *= -1
                 mirrored_wing.vertice_points[i][1] *= -1
                 mirrored_wing.cp_lengths[i][1] *= -1
