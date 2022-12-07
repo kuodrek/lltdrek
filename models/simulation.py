@@ -13,35 +13,37 @@ class Simulation:
     linear_check: bool = False
     matrix_dim: int = field(init=False)
 
+
     def __post_init__(self):
         self.matrix_dim = sum([wing.N_panels for wing in self.wing_pool.complete_wing_pool])
     
+
     def calculate_main_equation_simplified(self, v_inf_array: np.ndarray, ind_velocities_dict: dict) -> np.ndarray:
         A_matrix = np.zeros([self.matrix_dim, self.matrix_dim])
         B_matrix = np.zeros(self.matrix_dim)
 
         i_glob = 0
         for wing_i in self.wing_pool.complete_wing_pool:
-                cp_dsl = wing_i.cp_dsl
-                u_n = wing_i.u_n
                 for i, _ in enumerate(wing_i.collocation_points):
-                    A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, cp_dsl[i]))
-                    Cl_0_i = 1
-                    Cl_alpha_i = 1
+                    A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, wing_i.cp_dsl[i]))
+                    linear_data = get_linear_data(wing_i.cp_airfoil[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
+                    Cl_0_i = linear_data["cl0"] * np.pi / 180
+                    Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
                     al_0_i = -Cl_0_i/Cl_alpha_i
 
-                    B_matrix[i_glob] = Cl_alpha_i*(np.dot(v_inf_array,u_n[i])-al_0_i)
+                    B_matrix[i_glob] = Cl_alpha_i*(np.dot(v_inf_array, wing_i.u_n[i])-al_0_i)
 
                     j_glob = 0
                     for wing_j in self.wing_pool.complete_wing_pool:
                         v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
                         for j, _ in enumerate(wing_j.collocation_points):
                             v_ij = v_ij_distr[i][j]
-                            A_matrix[i_glob][j_glob] += -1*Cl_alpha_i*np.dot(v_ij, u_n[i])
+                            A_matrix[i_glob][j_glob] += -1*Cl_alpha_i*np.dot(v_ij, wing.u_n[i])
                             j_glob += 1
                     i_glob += 1
         G_solution = npla.solve(A_matrix, B_matrix)
         return G_solution
+
 
     def calculate_main_equation(self, total_velocity_dict: dict, aoa_eff_dict: dict, G_dict: dict) -> np.ndarray:
         """
@@ -55,9 +57,17 @@ class Simulation:
                 total_velocity_distr = total_velocity_dict[wing.surface_name]
                 for i, _ in enumerate(wing.collocation_points):
                     Cl_i = 1 * aoa_eff_distr[i] # TODO: Chamar a função de lookup
+                    Cl_i = get_airfoil_data(
+                        wing.cp_airfoil[i],
+                        wing.cp_reynolds[i],
+                        wing.aoa_eff_distr[i],
+                        wing.airfoil_data,
+                        cl_alpha_check = False
+                    )
                     norm_value = npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i]))
                     R_array[i] = 2 * norm_value * G_list[i] - Cl_i
         return R_array
+
 
     def calculate_corrector_equation(
         self,
@@ -86,7 +96,13 @@ class Simulation:
                 u_a_i = wing_i.u_a[i]
                 v_n_i = np.dot(total_velocity_distr[i], wing_i.u_n[i])
                 v_a_i = np.dot(total_velocity_distr[i], wing_i.u_a[i])
-                Cl_alpha_i = aoa_eff_dict[wing_i.surface_name][i] * 1 # TODO: Chamar a função de lookup
+                Cl_alpha_i = get_airfoil_data(
+                        wing.cp_airfoil[i],
+                        wing.cp_reynolds[i],
+                        wing.aoa_eff_distr[i],
+                        wing.airfoil_data,
+                        cl_alpha_check = True
+                    ) * 180 / np.pi
                 w_i_norm = npla.norm(w_i)
                 for wing_j in self.wing_pool.complete_wing_pool:
                     v_ij_distr = ind_velocity_dict[wing_i.surface_name][wing_j.surface_name]
@@ -104,6 +120,7 @@ class Simulation:
 
         delta_G = npla.solve(J_matrix, -R_array)
         return delta_G
+
 
     def run_simulation(self):
         """
