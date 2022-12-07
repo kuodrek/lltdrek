@@ -27,6 +27,7 @@ class Wing:
     vertice_points: np.ndarray = field(init=False)
     u_a: np.ndarray = field(init=False)
     u_n: np.ndarray = field(init=False)
+    u_s: np.ndarray = field(init=False)
     cp_lengths: np.ndarray = field(init=False)
     cp_dsl: np.ndarray = field(init=False)
     cp_areas: np.ndarray = field(init=False)
@@ -68,6 +69,7 @@ class Wing:
 
         self.u_a = np.zeros([self.N_panels, 3]) # Vetor unitário colinear à corda
         self.u_n = np.zeros([self.N_panels, 3]) # Vetor unitário normal à corda
+        self.u_s = np.zeros([self.N_panels, 3]) # Vetor perpendicular ao plano do perfil
 
         self.cp_lengths = np.zeros([self.N_panels, 3]) # Vetor de comprimento de cada painel
         self.cp_dsl = np.zeros([self.N_panels, 3]) # Vetor de comprimento ao longo da envergadura adimensional (dimensionless spanwise length vector)
@@ -131,6 +133,7 @@ class Wing:
                 euler_matrix = geo.get_euler_matrix(dihedral_partition, twist_cp, sweep_partition)
                 self.u_a[idx_n+j] = euler_matrix.dot(np.array([1, 0, 0]))
                 self.u_n[idx_n+j] = euler_matrix.dot(np.array([0, 0, 1]))
+                self.u_s[idx_n+j] = np.cross(self.u_a[idx_n+j], self.u_n[idx_n+j])
 
                 chord_vp_j = geo.get_local_chord(vp_y_component[j], chord_i, chord_ii, span_partition)
                 chord_vp_jj = geo.get_local_chord(vp_y_component[j+1], chord_i, chord_ii, span_partition)
