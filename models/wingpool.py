@@ -71,18 +71,27 @@ class WingPool:
             mirrored_wing = copy.deepcopy(wing)
             mirrored_wing.surface_name += "_mirrored"
 
-            # Mirror y-coordinate of required values
-            # TODO: do these operations using vectorization
-            for i in range(mirrored_wing.N_panels):
-                mirrored_wing.u_a[i][1] *= -1
-                mirrored_wing.u_n[i][1] *= -1
-                mirrored_wing.u_s[i][0] *= -1
-                mirrored_wing.u_s[i][2] *= -1
-                mirrored_wing.collocation_points[i][1] *= -1
-                mirrored_wing.vertice_points[i][1] *= -1
-                mirrored_wing.cp_lengths[i][1] *= -1
-                mirrored_wing.cp_dsl[i][1] *= -1
-            mirrored_wing.vertice_points[-1][1] *= -1
+            # Mirror y-coordinate of required values and flip order
+            # Falta inverter mais atributos
+            mirrored_wing.u_a[:,1] = -1 * mirrored_wing.u_a[:,1]
+            mirrored_wing.u_n[:,1] = -1 * mirrored_wing.u_n[:,1]
+            mirrored_wing.u_s[:,0] = -1 * mirrored_wing.u_s[:,0]
+            mirrored_wing.u_s[:,2] = -1 * mirrored_wing.u_s[:,2]
+            mirrored_wing.collocation_points[:,1] = -1 * mirrored_wing.collocation_points[:,1]
+            mirrored_wing.vertice_points[:,1] = -1 * mirrored_wing.vertice_points[:,1]
+            mirrored_wing.cp_lengths[:,1] = -1 * mirrored_wing.cp_lengths[:,1]
+            mirrored_wing.cp_dsl[:,1] = -1 * mirrored_wing.cp_dsl[:,1]
+
+            mirrored_wing.u_a = np.flip(mirrored_wing.u_a, axis=0)
+            mirrored_wing.u_n = np.flip(mirrored_wing.u_n, axis=0)
+            mirrored_wing.u_s = np.flip(mirrored_wing.u_s, axis=0)
+            mirrored_wing.u_s = np.flip(mirrored_wing.u_s, axis=0)
+            mirrored_wing.collocation_points = np.flip(mirrored_wing.collocation_points, axis=0)
+            mirrored_wing.vertice_points = np.flip(mirrored_wing.vertice_points, axis=0)
+            mirrored_wing.cp_lengths = np.flip(mirrored_wing.cp_lengths, axis=0)
+            mirrored_wing.cp_dsl = np.flip(mirrored_wing.cp_dsl, axis=0)
+            mirrored_wing.cp_reynolds = np.flip(mirrored_wing.cp_reynolds, axis=0)
+            mirrored_wing.cp_airfoils.reverse()
 
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
