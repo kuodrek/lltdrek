@@ -4,7 +4,7 @@ import numpy as np
 import numpy.linalg as npla
 from utils.lookup import get_airfoil_data, get_linear_data
 
-@dataclass
+@dataclass(repr=False)
 class Simulation:
     wing_pool: WingPool
     damping_factor: float = 0.7
@@ -92,7 +92,7 @@ class Simulation:
             aoa_eff_distr = aoa_eff_dict[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
                 j_glob = 0
-
+                # É SÓ INVERTER TUDO DAS ASAS ESPELHADAS
                 w_i = np.cross(total_velocity_distr[i], wing_i.cp_dsl[i])
                 w_i_abs = npla.norm(w_i)
                 u_n_i = wing_i.u_n[i]
@@ -143,14 +143,15 @@ class Simulation:
             iteration = 0
             G_history_list = []
 
-            if idx == 0:
+            # if idx == 0:
                 # Solve linear system to get a better approximation for G
-                G = self.calculate_main_equation_simplified(
-                    v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
-                    ind_velocities_dict=self.wing_pool.ind_velocities_list[idx],
-                    )
-                G_dict = self.wing_pool.update_solution(G_solution=G)
-
+                # G = self.calculate_main_equation_simplified(
+                #     v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+                #     ind_velocities_dict=self.wing_pool.ind_velocities_list[idx],
+                #     )
+                # G_dict = self.wing_pool.update_solution(G_solution=G)
+            G = [0.1 for _ in range(self.matrix_dim)]
+            G_dict = self.wing_pool.G_dict
 
             if self.linear_check:
                 print(f"Found solution for angle {aoa}")
@@ -177,6 +178,7 @@ class Simulation:
                     G_dict = self.wing_pool.update_solution(G)
 
                     G_history_list.append(G)
+                    print(f"iteration no. {iteration}")
                     iteration += 1
                     if iteration > self.max_iter:
                         G_solution_list.append(np.nan)
