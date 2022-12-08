@@ -6,7 +6,7 @@ from typing import List, Union
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(repr=False)
 class Wing:
     spans: List[float]
     chords: List[float]

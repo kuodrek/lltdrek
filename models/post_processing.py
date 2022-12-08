@@ -5,7 +5,7 @@ from models.wingpool import WingPool
 from models.wing import Wing
 from models.flight_condition import FlightCondition
 
-@dataclass
+@dataclass(repr=False)
 class PostProcessing:
     reference_point: list
 
