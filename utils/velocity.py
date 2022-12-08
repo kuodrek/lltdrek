@@ -4,7 +4,7 @@ from models.wing import Wing
 
 
 # Distribution of induced velocities
-def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_points, v_inf):
+def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_points, v_inf_array, surface_name):
     v_ij_distr = np.zeros([len(collocation_points),len(vertice_points)-1,3])
     len_cp = len(collocation_points)
     len_vp = len(vertice_points)
@@ -12,9 +12,14 @@ def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_point
         cp_i = collocation_points[i]
         mac_i = cp_macs[i]
         for j in range(len_vp - 1):
-            vp_j = vertice_points[j]
-            vp_jj = vertice_points[j+1]
-            v_ij = get_induced_velocity(cp_i, vp_j, vp_jj, mac_i, v_inf)
+            if "_mirrored" in surface_name:
+                # Pelo fato da asa ser espelhada, o sentido do vetor de posição também é invertido
+                vp_jj = vertice_points[j]
+                vp_j = vertice_points[j+1]
+            else:
+                vp_j = vertice_points[j]
+                vp_jj = vertice_points[j+1]
+            v_ij = get_induced_velocity(cp_i, vp_j, vp_jj, mac_i, v_inf_array)
             v_ij_distr[i,j,:] = v_ij
 
     return v_ij_distr
@@ -31,7 +36,7 @@ def get_local_induced_velocity(G_array, v_ij_distr):
 
 
 # Function to calculate the induced velocity caused by a vortex panel in a point
-def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, mac, v_inf): 
+def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, mac, v_inf_array): 
     velocity_ij = np.zeros(3)
 
     ri1j = collocation_point - vertice_point_1
@@ -39,10 +44,10 @@ def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, ma
 
     ri1j_abs = npla.norm(ri1j)
     ri2j_abs = npla.norm(ri2j)
-    r1_cross_prod = np.cross(v_inf, ri1j)
-    r2_cross_prod = np.cross(v_inf, ri2j)
-    r1_dot_prod = np.dot(v_inf, ri1j)
-    r2_dot_prod = np.dot(v_inf, ri2j)
+    r1_cross_prod = np.cross(v_inf_array, ri1j)
+    r2_cross_prod = np.cross(v_inf_array, ri2j)
+    r1_dot_prod = np.dot(v_inf_array, ri1j)
+    r2_dot_prod = np.dot(v_inf_array, ri2j)
     r12_cross_prod = np.cross(ri1j, ri2j)
     r12_dot_prod = np.dot(ri1j, ri2j)
 
@@ -60,10 +65,10 @@ def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, ma
 
 
 # Induced velocity calculation considering ground effect through reflection method
-def get_induced_velocity_ground_effect(collocation_point, vertice_point_1, vertice_point_2, v_inf, mac, h):
+def get_induced_velocity_ground_effect(collocation_point, vertice_point_1, vertice_point_2, v_inf_array, mac, h):
     velocity_ij = np.zeros(3)
 
-    v_inf_ge = v_inf
+    v_inf_ge = v_inf_array
     v_inf_ge[2] = -v_inf_ge[2]
 
     ri1j = collocation_point - vertice_point_1
