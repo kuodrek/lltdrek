@@ -12,13 +12,13 @@ def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_point
         cp_i = collocation_points[i]
         mac_i = cp_macs[i]
         for j in range(len_vp - 1):
-            if "_mirrored" in surface_name:
-                # Pelo fato da asa ser espelhada, o sentido do vetor de posição também é invertido
-                vp_jj = vertice_points[j]
-                vp_j = vertice_points[j+1]
-            else:
-                vp_j = vertice_points[j]
-                vp_jj = vertice_points[j+1]
+            # if "_mirrored" in surface_name:
+            #     # Pelo fato da asa ser espelhada, o sentido do vetor de posição também é invertido
+            #     vp_j = vertice_points[j]
+            #     vp_jj = vertice_points[j+1]
+            # else:
+            vp_j = vertice_points[j]
+            vp_jj = vertice_points[j+1]
             v_ij = get_induced_velocity(cp_i, vp_j, vp_jj, mac_i, v_inf_array)
             v_ij_distr[i,j,:] = v_ij
 
