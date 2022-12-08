@@ -141,8 +141,9 @@ def get_non_linear_cl_alpha(cl_data: dict, aoa: float):
             if aoa_i <= aoa <= aoa_ii:
                 cl_i = cl_data[i][1]
                 cl_ii = cl_data[i+1][1]
+                # a formula ta errada, precisa consertar
                 h = aoa_ii - aoa_i
-                cl_alpha = (cl_ii - cl_i) / ( 2*h )
+                cl_alpha = (cl_ii - cl_i) / ( h )
                 break
     
     return cl_alpha
