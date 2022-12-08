@@ -31,7 +31,7 @@ aoa_eff_dict = {
 """
 
 
-@dataclass
+@dataclass(repr=False)
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
@@ -51,7 +51,7 @@ class WingPool:
         for _, wing in enumerate(self.complete_wing_pool):
             self.ind_velocities_dict[wing.surface_name] = {}
             if self.initial_G == None:
-                self.G_dict[wing.surface_name] = [1 for _ in range(wing.N_panels)]
+                self.G_dict[wing.surface_name] = [0.1 for _ in range(wing.N_panels)]
             else:
                 for surface_name, G_list in self.initial_G.items():
                     self.G_dict[surface_name] = G_list
@@ -68,7 +68,7 @@ class WingPool:
         This is the list that will be used in calculations
         """
         for wing in self.wing_list:
-            mirrored_wing = copy.copy(wing)
+            mirrored_wing = copy.deepcopy(wing)
             mirrored_wing.surface_name += "_mirrored"
 
             # Mirror y-coordinate of required values
@@ -114,7 +114,7 @@ class WingPool:
             for wing_vp in self.complete_wing_pool:
                 vertice_points = wing_vp.vertice_points
                 v_ij_distr = velocity.get_induced_velocity_distribution(
-                    collocation_points, cp_macs, vertice_points, v_inf_array
+                    collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name
                 )
                 self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
         return self.ind_velocities_dict
