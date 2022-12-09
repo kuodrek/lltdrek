@@ -114,7 +114,7 @@ class Simulation:
                         coef_ij = 2 * np.dot(w_i,np.cross(v_ij, wing_i.cp_dsl[i]))*G_distr[i] / w_i_norm \
                             - Cl_alpha_i * (v_a_i * np.dot(v_ij, u_n_i) - v_n_i * np.dot(v_ij, u_a_i)) /(v_a_i ** 2 + v_n_i ** 2)
 
-                        if wing_i.surface_name == wing_j.surface_name and i != j:
+                        if wing_i.surface_name == wing_j.surface_name and i == j:
                             coef_ij += 2 * w_i_abs
                         
                         J_matrix[i_glob][j_glob] = coef_ij
