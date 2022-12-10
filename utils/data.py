@@ -49,14 +49,15 @@ def cl_file_to_dict(file_path: str):
             reynolds = line.rstrip().split(",")[-1]
             cm0_line = f.readline()
             cm0 = float(cm0_line.rstrip().split(",")[-1])
-            cl_list = []
+            cl_list_temp = []
             while True:
                 cl_line = f.readline()
                 if cl_line == "\n" or cl_line == "": break
                 else:
                     cl_line = cl_line.rstrip().split(",")
-                    cl_list.append([float(value) for value in cl_line])
-            cl_linear_coefs = get_linear_coefs(cl_list)
+                    cl_list_temp.append([float(value) for value in cl_line])
+            cl_linear_coefs = get_linear_coefs(cl_list_temp)
+            cl_list = np.array(cl_list_temp)
             airfoil_data_dict[reynolds] = {
                 "cl_list": cl_list,
                 "cl_alpha": cl_linear_coefs["cl_alpha"],
