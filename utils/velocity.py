@@ -25,16 +25,6 @@ def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_point
     return v_ij_distr
 
 
-def get_local_induced_velocity(G_array, v_ij_distr):
-    v_ij_dummy = np.zeros(3)
-    for i, row in v_ij_distr.enumerate():
-        for j, column in v_ij_distr.enumerate():
-            pass
-        
-
-    pass
-
-
 # Function to calculate the induced velocity caused by a vortex panel in a point
 def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, mac, v_inf_array): 
     velocity_ij = np.zeros(3)
