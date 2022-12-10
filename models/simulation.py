@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from models.wingpool import WingPool
 import numpy as np
-import numpy.linalg as npla
-from utils.lookup import get_airfoil_data, get_linear_data
 from utils.timeit import timeit
 from simulation.main_equations import (
     calculate_corrector_equation,
@@ -28,10 +26,10 @@ class Simulation:
     def run_simulation(self) -> list:
         """
         Método para rodar a simulação principal do lltdrek
-        O chute inicial da lista G já está presente na wing_pool
         A simulação usa o método da convergencia acelerada como default,
         onde o resultado da simulação anterior é o primeiro chute da simulação atual,
         acelerando a convergência
+        Outra opção é rodar a equação simplificada como primeiro chute
 
         tem bastante coisa pra aprimorar aqui nesse método
         """
