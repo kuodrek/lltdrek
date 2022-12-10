@@ -4,6 +4,7 @@ import numpy as np
 import numpy.linalg as npla
 from utils.lookup import get_airfoil_data, get_linear_data
 
+
 @dataclass(repr=False, eq=False, match_args=False)
 class Simulation:
     wing_pool: WingPool
@@ -90,7 +91,6 @@ class Simulation:
             aoa_eff_distr = aoa_eff_dict[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
                 j_glob = 0
-                # É SÓ INVERTER TUDO DAS ASAS ESPELHADAS
                 w_i = np.cross(total_velocity_distr[i], wing_i.cp_dsl[i])
                 w_i_abs = npla.norm(w_i)
                 u_n_i = wing_i.u_n[i]

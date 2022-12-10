@@ -4,7 +4,6 @@ from models.flight_condition import FlightCondition
 from utils import velocity
 from dataclasses import dataclass, field
 import numpy as np
-import numpy.linalg as npla
 import copy
 
 
@@ -149,41 +148,6 @@ class WingPool:
                     ind_velocities_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name][i]
                     for j, v_ij in enumerate(ind_velocities_distr):
                         total_velocity_dict[wing_i.surface_name][i] += v_ij * G[j]
-        return total_velocity_dict
-
-
-    def calculate_total_velocity_backup(self, v_inf_array: np.ndarray, G_dict: dict):
-        """
-        WIP
-        Method that calculates the sum of vij * G  + v_inf of all wings
-        - É NECESSÁRIO ACHAR O INDICE DA DISTRIBUIÇAO DE VELOCIDADES CORRETO
-        - Faz sentido usar self.G_dict? Não deveria ser um input pra esse método assim como v_inf_array?
-        """
-        aoa_index = np.nan
-        for idx, array in enumerate(self.flight_condition.v_inf_list):
-            if np.array_equal(v_inf_array, array):
-                aoa_index = idx
-                break
-        if aoa_index == np.nan:
-            raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
-        
-        ind_velocities_dict = self.ind_velocities_list[aoa_index]
-        total_velocity_dict = {}
-        # validar se tá certo
-        for wing_i in self.complete_wing_pool:
-            for wing_j in self.complete_wing_pool:
-                G = G_dict[wing_j.surface_name]
-                v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
-                total_velocity_distr = np.zeros((wing_i.N_panels, 3))
-                for panel_i, v_ij_distr_panel in enumerate(v_ij_distr):
-                    total_velocity_i = v_inf_array
-                    # numpy logic: VALIDAR
-                    # total_velocity_i += v_ij_distr[:]
-                    for panel_j, v_ij in enumerate(v_ij_distr_panel):
-                        total_velocity_i += v_ij * G[panel_j]
-                        # total_velocity_i += (v_ij+v_ij_mirrored) * G[panel_j]
-                    total_velocity_distr[panel_i][:] = total_velocity_i
-            total_velocity_dict[wing_i.surface_name] = total_velocity_distr
         return total_velocity_dict
 
 
