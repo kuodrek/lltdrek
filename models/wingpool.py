@@ -5,6 +5,7 @@ from utils import velocity
 from dataclasses import dataclass, field
 import numpy as np
 import copy
+from utils.timeit import timeit
 
 
 """
@@ -39,6 +40,7 @@ class WingPool:
     G_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
 
+    @timeit
     def __post_init__(self):
         self.G_dict = {}
         self.complete_wing_pool = []
@@ -57,7 +59,7 @@ class WingPool:
             ind_velocities_dict = self.calculate_induced_velocities(v_inf_array)
             self.ind_velocities_list.append(ind_velocities_dict)
 
-    
+
     def build_complete_wing_pool(self):
         """
         Method that builds a wing pool with mirrored wing objects.

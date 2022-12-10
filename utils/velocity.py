@@ -1,19 +1,23 @@
 import numpy as np
 import numpy.linalg as npla
-from models.wing import Wing
+import numba
 
 
-# Distribution of induced velocities
+# @numba.jit(nopython=False)
 def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_points, v_inf_array, surface_name):
-    v_ij_distr = np.zeros([len(collocation_points),len(vertice_points)-1,3])
+    """
+    Distribution of induced velocities
+    """
     len_cp = len(collocation_points)
     len_vp = len(vertice_points)
+    v_ij_distr = np.zeros([len_cp,len_vp-1,3])
+    
     for i in range(len_cp):
         cp_i = collocation_points[i]
         mac_i = cp_macs[i]
         for j in range(len_vp - 1):
             if "_mirrored" in surface_name:
-                # Pelo fato da asa ser espelhada, o sentido do vetor de posição também é invertido
+                # Pelo fato da asa ser espelhada, o sentido do vetor posição também é invertido
                 vp_jj = vertice_points[j]
                 vp_j = vertice_points[j+1]
             else:
@@ -25,8 +29,17 @@ def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_point
     return v_ij_distr
 
 
-# Function to calculate the induced velocity caused by a vortex panel in a point
-def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, mac, v_inf_array): 
+@numba.njit
+def get_induced_velocity(
+    collocation_point: np.ndarray,
+    vertice_point_1: np.ndarray,
+    vertice_point_2: np.ndarray,
+    mac: np.ndarray,
+    v_inf_array: np.ndarray
+) -> float: 
+    """
+    Function to calculate the induced velocity caused by a vortex panel in a point
+    """
     velocity_ij = np.zeros(3)
 
     ri1j = collocation_point - vertice_point_1
@@ -54,8 +67,11 @@ def get_induced_velocity(collocation_point, vertice_point_1, vertice_point_2, ma
     return velocity_ij
 
 
-# Induced velocity calculation considering ground effect through reflection method
+@numba.njit
 def get_induced_velocity_ground_effect(collocation_point, vertice_point_1, vertice_point_2, v_inf_array, mac, h):
+    """
+    Induced velocity calculation considering ground effect through reflection method
+    """
     velocity_ij = np.zeros(3)
 
     v_inf_ge = v_inf_array

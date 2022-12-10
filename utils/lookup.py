@@ -1,3 +1,6 @@
+import numba
+
+
 def get_airfoil_data(
     cp_airfoil: list,
     cp_reynolds: float,
@@ -72,6 +75,7 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
     return cl
 
 
+# @numba.jit
 def aoa_list_lookup(cl_data: list, aoa: float) -> float:
     """
     TODO: melhorar o código quando o alfa tá fora dos limites da lista
@@ -99,7 +103,8 @@ def aoa_list_lookup(cl_data: list, aoa: float) -> float:
     return cl_interp
 
 
-def get_non_linear_cl_alpha(cl_data: dict, aoa: float) -> float:
+# @numba.jit
+def get_non_linear_cl_alpha(cl_data: list, aoa: float) -> float:
     """
     - Função que calcula o cl alpha para um dado
     aoa utilizando a fórmula da diferença dividida finita
