@@ -142,7 +142,8 @@ def get_non_linear_cl_alpha(cl_data: dict, aoa: float):
                 cl_i = cl_data[i][1]
                 cl_ii = cl_data[i+1][1]
                 h = aoa_ii - aoa_i
-                cl_alpha = (cl_ii - cl_i) / ( 2*h )
+                # formula deveria ser 2h mas ta pegando os valores errados, arrumar
+                cl_alpha = (cl_ii - cl_i) / ( h )
                 break
     
     return cl_alpha
