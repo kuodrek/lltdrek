@@ -31,7 +31,7 @@ aoa_eff_dict = {
 """
 
 
-@dataclass(repr=False)
+@dataclass(repr=False, eq=False, match_args=False)
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
@@ -39,17 +39,14 @@ class WingPool:
     ind_velocities_dict: Dict = field(init=False)
     G_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
-    ind_velocities_list: List[Dict] = field(init=False)
 
     def __post_init__(self):
-        self.ind_velocities_dict = {}
         self.G_dict = {}
         self.complete_wing_pool = []
         self.ind_velocities_list = []
 
         self.build_complete_wing_pool()
         for _, wing in enumerate(self.complete_wing_pool):
-            self.ind_velocities_dict[wing.surface_name] = {}
             if self.initial_G == None:
                 self.G_dict[wing.surface_name] = [0.1 for _ in range(wing.N_panels)]
             else:
@@ -108,6 +105,10 @@ class WingPool:
 
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
         # Essa função calcula tudo para um angulo de ataque e é chamada para cada aoa no __post_init__
+        ind_velocities_dict = {}
+        for wing in self.complete_wing_pool:
+            ind_velocities_dict[wing.surface_name] = {}
+        
         for wing_cp in self.complete_wing_pool:
             collocation_points = wing_cp.collocation_points
             cp_macs = wing_cp.cp_macs
@@ -116,11 +117,42 @@ class WingPool:
                 v_ij_distr = velocity.get_induced_velocity_distribution(
                     collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name
                 )
-                self.ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
-        return self.ind_velocities_dict
+                ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
+        return ind_velocities_dict
 
 
     def calculate_total_velocity(self, v_inf_array: np.ndarray, G_dict: dict):
+        """
+        WIP
+        Method that calculates the sum of vij * G  + v_inf of all wings
+        - Dá pra acelerar esse método calculando somente a velocidade dos objetos originais e copiando para os objetos 
+        espelhados
+        """
+        aoa_index = np.nan
+        for idx, array in enumerate(self.flight_condition.v_inf_list):
+            if np.array_equal(v_inf_array, array):
+                aoa_index = idx
+                break
+        if aoa_index == np.nan:
+            raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
+        
+        ind_velocities_dict = self.ind_velocities_list[aoa_index]
+        total_velocity_dict = {}
+        for wing in self.complete_wing_pool:
+            total_velocity_dict[wing.surface_name] = np.zeros((wing.N_panels,3))
+
+        for wing_i in self.complete_wing_pool:
+            for i, _ in enumerate(total_velocity_dict[wing_i.surface_name]):
+                total_velocity_dict[wing_i.surface_name][i] += v_inf_array
+                for wing_j in self.complete_wing_pool:
+                    G = G_dict[wing_j.surface_name]
+                    ind_velocities_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name][i]
+                    for j, v_ij in enumerate(ind_velocities_distr):
+                        total_velocity_dict[wing_i.surface_name][i] += v_ij * G[j]
+        return total_velocity_dict
+
+
+    def calculate_total_velocity_backup(self, v_inf_array: np.ndarray, G_dict: dict):
         """
         WIP
         Method that calculates the sum of vij * G  + v_inf of all wings
@@ -131,6 +163,7 @@ class WingPool:
         for idx, array in enumerate(self.flight_condition.v_inf_list):
             if np.array_equal(v_inf_array, array):
                 aoa_index = idx
+                break
         if aoa_index == np.nan:
             raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
         
@@ -141,13 +174,14 @@ class WingPool:
             for wing_j in self.complete_wing_pool:
                 G = G_dict[wing_j.surface_name]
                 v_ij_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name]
-                total_velocity_distr = np.zeros((wing_i.N_panels, 3)) # ver se não vai ter um off-by-one error aqui rsrs
+                total_velocity_distr = np.zeros((wing_i.N_panels, 3))
                 for panel_i, v_ij_distr_panel in enumerate(v_ij_distr):
                     total_velocity_i = v_inf_array
                     # numpy logic: VALIDAR
                     # total_velocity_i += v_ij_distr[:]
                     for panel_j, v_ij in enumerate(v_ij_distr_panel):
                         total_velocity_i += v_ij * G[panel_j]
+                        # total_velocity_i += (v_ij+v_ij_mirrored) * G[panel_j]
                     total_velocity_distr[panel_i][:] = total_velocity_i
             total_velocity_dict[wing_i.surface_name] = total_velocity_distr
         return total_velocity_dict
