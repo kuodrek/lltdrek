@@ -4,7 +4,7 @@ import numpy as np
 import numpy.linalg as npla
 from utils.lookup import get_airfoil_data, get_linear_data
 
-@dataclass(repr=False)
+@dataclass(repr=False, eq=False, match_args=False)
 class Simulation:
     wing_pool: WingPool
     damping_factor: float = 0.7
@@ -57,16 +57,15 @@ class Simulation:
                 G_list = G_dict[wing.surface_name]
                 total_velocity_distr = total_velocity_dict[wing.surface_name]
                 for i, _ in enumerate(wing.collocation_points):
-                    Cl_i = 1 * aoa_eff_distr[i] # TODO: Chamar a função de lookup
                     Cl_i = get_airfoil_data(
                         wing.cp_airfoils[i],
                         wing.cp_reynolds[i],
-                        aoa_eff_distr[i],
+                        aoa_eff_distr[i] * 180 / np.pi,
                         wing.airfoil_data,
                         cl_alpha_check = False
                     )
-                    norm_value = npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i]))
-                    R_array[i_glob] = 2 * norm_value * G_list[i] - Cl_i
+                    R_array[i_glob] = 2 * npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i])) * G_list[i] \
+                        - Cl_i
                     i_glob += 1
         return R_array
 
@@ -84,7 +83,6 @@ class Simulation:
         [J]delta_G = -R
         """
         J_matrix = np.zeros([self.matrix_dim, self.matrix_dim])
-
         i_glob = 0
         for wing_i in self.wing_pool.complete_wing_pool:
             G_distr = G_dict[wing_i.surface_name]
@@ -102,19 +100,18 @@ class Simulation:
                 Cl_alpha_i = get_airfoil_data(
                         wing_i.cp_airfoils[i],
                         wing_i.cp_reynolds[i],
-                        aoa_eff_distr[i],
+                        aoa_eff_distr[i] * 180 / np.pi,
                         wing_i.airfoil_data,
                         cl_alpha_check = True
                     ) * 180 / np.pi
-                w_i_norm = npla.norm(w_i)
                 for wing_j in self.wing_pool.complete_wing_pool:
                     v_ij_distr = ind_velocity_dict[wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j] # TODO: verificar se índices estão corretos
-                        coef_ij = 2 * np.dot(w_i,np.cross(v_ij, wing_i.cp_dsl[i]))*G_distr[i] / w_i_norm \
+                        coef_ij = 2 * np.dot(w_i,np.cross(v_ij, wing_i.cp_dsl[i]))*G_distr[i] / w_i_abs \
                             - Cl_alpha_i * (v_a_i * np.dot(v_ij, u_n_i) - v_n_i * np.dot(v_ij, u_a_i)) /(v_a_i ** 2 + v_n_i ** 2)
 
-                        if wing_i.surface_name == wing_j.surface_name and i != j:
+                        if wing_i.surface_name == wing_j.surface_name and i == j:
                             coef_ij += 2 * w_i_abs
                         
                         J_matrix[i_glob][j_glob] = coef_ij
@@ -129,7 +126,7 @@ class Simulation:
         """
         Método para rodar a simulação principal do lltdrek
         O chute inicial da lista G já está presente na wing_pool
-        A simulação usa o método da convergencia acelerada naturalmente,
+        A simulação usa o método da convergencia acelerada como default,
         onde o resultado da simulação anterior é o primeiro chute da simulação atual,
         acelerando a convergência
 
@@ -143,15 +140,15 @@ class Simulation:
             iteration = 0
             G_history_list = []
 
-            # if idx == 0:
+            if idx == 0:
                 # Solve linear system to get a better approximation for G
-                # G = self.calculate_main_equation_simplified(
-                #     v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
-                #     ind_velocities_dict=self.wing_pool.ind_velocities_list[idx],
-                #     )
-                # G_dict = self.wing_pool.update_solution(G_solution=G)
-            G = [0.1 for _ in range(self.matrix_dim)]
-            G_dict = self.wing_pool.G_dict
+                G = self.calculate_main_equation_simplified(
+                    v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+                    ind_velocities_dict=self.wing_pool.ind_velocities_list[idx],
+                    )
+                G_dict = self.wing_pool.update_solution(G_solution=G)
+            # G = [0.1 for _ in range(self.matrix_dim)]
+            # G_dict = self.wing_pool.G_dict
 
             if self.linear_check:
                 print(f"Found solution for angle {aoa}")
@@ -177,8 +174,7 @@ class Simulation:
                     G = G + delta_G * self.damping_factor                  
                     G_dict = self.wing_pool.update_solution(G)
 
-                    G_history_list.append(G)
-                    print(f"iteration no. {iteration}")
+                    # G_history_list.append(G)
                     iteration += 1
                     if iteration > self.max_iter:
                         G_solution_list.append(np.nan)
