@@ -6,7 +6,7 @@ from typing import List, Union
 from dataclasses import dataclass, field
 
 
-@dataclass(repr=False)
+@dataclass(repr=False, eq=False, match_args=False)
 class Wing:
     spans: List[float]
     chords: List[float]
@@ -53,6 +53,11 @@ class Wing:
         self.twist_angles = [angle * np.pi / 180 for angle in self.twist_angles]
         self.dihedral_angles = [angle * np.pi / 180 for angle in self.dihedral_angles]
     
+
+    def __repr__(self) -> None:
+        return self.surface_name
+
+
     def generate_mesh(self) -> None:
         self.total_span = sum(self.spans)
         # Number of panels of each partition
