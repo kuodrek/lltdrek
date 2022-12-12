@@ -1,9 +1,7 @@
 import numpy as np
 import numpy.linalg as npla
-import numba
 
 
-# @numba.jit(nopython=False)
 def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_points, v_inf_array, surface_name):
     """
     Distribution of induced velocities
@@ -29,7 +27,6 @@ def get_induced_velocity_distribution(collocation_points, cp_macs, vertice_point
     return v_ij_distr
 
 
-@numba.njit
 def get_induced_velocity(
     collocation_point: np.ndarray,
     vertice_point_1: np.ndarray,
@@ -67,7 +64,6 @@ def get_induced_velocity(
     return velocity_ij
 
 
-@numba.njit
 def get_induced_velocity_ground_effect(collocation_point, vertice_point_1, vertice_point_2, v_inf_array, mac, h):
     """
     Induced velocity calculation considering ground effect through reflection method
