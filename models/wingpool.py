@@ -70,17 +70,14 @@ class WingPool:
             mirrored_wing.surface_name += "_mirrored"
 
             # Mirror y-coordinate of required values
-            # TODO: do these operations using vectorization
-            for i in range(mirrored_wing.N_panels):
-                mirrored_wing.u_a[i][1] *= -1
-                mirrored_wing.u_n[i][1] *= -1
-                mirrored_wing.u_s[i][0] *= -1
-                mirrored_wing.u_s[i][2] *= -1
-                mirrored_wing.collocation_points[i][1] *= -1
-                mirrored_wing.vertice_points[i][1] *= -1
-                mirrored_wing.cp_lengths[i][1] *= -1
-                mirrored_wing.cp_dsl[i][1] *= -1
-            mirrored_wing.vertice_points[-1][1] *= -1
+            mirrored_wing.u_a[:,1] = -1 * mirrored_wing.u_a[:,1]
+            mirrored_wing.u_n[:,1] = -1 * mirrored_wing.u_n[:,1]
+            mirrored_wing.u_s[:,0] = -1 * mirrored_wing.u_s[:,0]
+            mirrored_wing.u_s[:,2] = -1 * mirrored_wing.u_s[:,2]
+            mirrored_wing.collocation_points[:,1] = -1 * mirrored_wing.collocation_points[:,1]
+            mirrored_wing.vertice_points[:,1] = -1 * mirrored_wing.vertice_points[:,1]
+            mirrored_wing.cp_lengths[:,1] = -1 * mirrored_wing.cp_lengths[:,1]
+            mirrored_wing.cp_dsl[:,1] = -1 * mirrored_wing.cp_dsl[:,1]
 
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
@@ -103,7 +100,7 @@ class WingPool:
             self.G_dict[wing.surface_name] = G_list
         return self.G_dict
     
-
+    @timeit
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
         # Essa função calcula tudo para um angulo de ataque e é chamada para cada aoa no __post_init__
         ind_velocities_dict = {}
