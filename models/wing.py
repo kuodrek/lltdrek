@@ -2,7 +2,7 @@ import numpy as np
 from models.flight_condition import FlightCondition
 import utils.geometry as geo
 import math
-from typing import List, Union
+from typing import List, Union, Optional
 from dataclasses import dataclass, field
 
 
@@ -40,6 +40,7 @@ class Wing:
     partition_areas: np.ndarray = field(init=False)
     total_area: float = field(init=False)
     AR: float = field(init=False)
+    parent_wing: Optional[str] = field(init=False)
 
     allowed_distribution_types = [
         "linear",
@@ -52,6 +53,7 @@ class Wing:
         # Convert degree to rad
         self.twist_angles = [angle * np.pi / 180 for angle in self.twist_angles]
         self.dihedral_angles = [angle * np.pi / 180 for angle in self.dihedral_angles]
+        self.parent_wing = None # Usado para asas espelhadas
     
 
     def __repr__(self) -> None:
