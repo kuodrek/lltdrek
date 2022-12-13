@@ -49,7 +49,7 @@ class WingPool:
         if(len(set(self.wing_list)) == len(self.wing_list)):
             self.build_complete_wing_pool()
         else:
-            raise ValueError("As asas que compõem a wing pool precisam ter nomes únicos")
+            raise Exception("As asas que compõem a wing pool precisam ter nomes únicos")
         
         for _, wing in enumerate(self.complete_wing_pool):
             if self.initial_G == None:
