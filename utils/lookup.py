@@ -76,7 +76,6 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
     return cl
 
 
-@numba.njit
 def aoa_list_lookup(cl_data: np.ndarray, aoa: float) -> float:
     """
     TODO: melhorar o código quando o alfa tá fora dos limites da lista
@@ -104,7 +103,6 @@ def aoa_list_lookup(cl_data: np.ndarray, aoa: float) -> float:
     return cl_interp
 
 
-@numba.njit
 def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float) -> float:
     """
     - Função que calcula o cl alpha para um dado
@@ -119,40 +117,32 @@ def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float) -> float:
     - Referência: Métodos numéricos para engenharia, capítulo 6
 
     """
-    if aoa <= cl_data[2][0]:
+    if aoa <= cl_data[0][0]:
         aoa_i = cl_data[0][0]
         aoa_ii = cl_data[1][0]
-        aoa_iii = cl_data[2][0]
         cl_i = cl_data[0][1]
         cl_ii = cl_data[1][1]
-        cl_iii = cl_data[2][1]
         
-        # Calcular a média do passo entre ângulos
-        h_avg = ( abs((aoa_iii - aoa_ii)) + abs((aoa_ii - aoa_i)) ) / 2
-        cl_alpha = (-cl_iii + 4 * cl_ii - 3 * cl_i) / ( 2*h_avg )
-    elif aoa >= cl_data[-3][0]:
-        aoa_i = cl_data[-3][0]
-        aoa_ii = cl_data[-2][0]
-        aoa_iii = cl_data[-1][0]
-        cl_i = cl_data[-3][1]
-        cl_ii = cl_data[-2][1]
-        cl_iii = cl_data[-1][1]
+    elif aoa >= cl_data[-1][0]:
+        aoa_i = cl_data[-2][0]
+        aoa_ii = cl_data[-1][0]
+        cl_i = cl_data[-2][1]
+        cl_ii = cl_data[-1][1]
 
-        h_avg = ( abs((aoa_iii - aoa_ii)) + abs((aoa_ii - aoa_i)) ) / 2
-        cl_alpha = (3*cl_iii - 4*cl_ii + 3*cl_i) / ( 2*h_avg )
     else:
-        for i in range(len(cl_data)-1):
-            aoa_i = cl_data[i][0]
-            aoa_ii = cl_data[i+1][0]
-            if aoa_i <= aoa <= aoa_ii:
-                cl_i = cl_data[i][1]
-                cl_ii = cl_data[i+1][1]
-                h = aoa_ii - aoa_i
-                # formula deveria ser 2h mas ta pegando os valores errados, arrumar
-                cl_alpha = (cl_ii - cl_i) / ( h )
-                break
+        i = find_closest(cl_data[:,0], aoa)
+        aoa_i = cl_data[i][0]
+        aoa_ii = cl_data[i+1][0]
+        cl_i = cl_data[i][1]
+        cl_ii = cl_data[i+1][1]
     
+    cl_alpha = (cl_ii - cl_i) / (aoa_ii - aoa_i)
+
     return cl_alpha
+
+
+# Função para encontrar o índice do valor mais próximo em uma array
+def find_closest(arr, val): return np.abs(arr - val).argmin()
 
 
 def get_linear_data(
