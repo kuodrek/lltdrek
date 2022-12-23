@@ -29,8 +29,8 @@ flight_condition = FlightCondition(
     V_inf=45.48,
     nu=6.39e-6,
     rho=2.83,
-    # aoa = [aoa_list_1[0]],
-    aoa = aoa_list_1,
+    aoa = [aoa_list_1[0]],
+    # aoa = aoa_list_1,
     ground_effect_check=False
 )
 
