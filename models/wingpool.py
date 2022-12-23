@@ -46,7 +46,11 @@ class WingPool:
         self.complete_wing_pool = []
         self.ind_velocities_list = []
 
-        self.build_complete_wing_pool()
+        if(len(set(self.wing_list)) == len(self.wing_list)):
+            self.build_complete_wing_pool()
+        else:
+            raise Exception("As asas que compõem a wing pool precisam ter nomes únicos")
+        
         for _, wing in enumerate(self.complete_wing_pool):
             if self.initial_G == None:
                 self.G_dict[wing.surface_name] = [0.1 for _ in range(wing.N_panels)]
@@ -78,6 +82,7 @@ class WingPool:
             mirrored_wing.vertice_points[:,1] = -1 * mirrored_wing.vertice_points[:,1]
             mirrored_wing.cp_lengths[:,1] = -1 * mirrored_wing.cp_lengths[:,1]
             mirrored_wing.cp_dsl[:,1] = -1 * mirrored_wing.cp_dsl[:,1]
+            mirrored_wing.parent_wing = wing.surface_name
 
             self.complete_wing_pool.append(wing)
             self.complete_wing_pool.append(mirrored_wing)
