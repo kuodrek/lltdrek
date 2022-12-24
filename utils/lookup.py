@@ -1,4 +1,3 @@
-import numba
 import numpy as np
 
 
@@ -23,6 +22,7 @@ def get_airfoil_data(
     - A verificação da mescla de dados entre perfis é feita olhando-se o tamanho
     do segundo índice da lista cp_airfoil (caso a lista de perfis seja > 1)
         - Caso len(cp_airfoil[1]) > 1, ocorrerá uma mescla de dados
+    - TODO: Passar a distribuiçao de aoa's de uma asa e retornar todos os cl's / cl_alpha's
     """
 
     # Verificar se o painel em questão é uma mescla de perfis
