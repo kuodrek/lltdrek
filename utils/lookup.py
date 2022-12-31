@@ -91,13 +91,11 @@ def aoa_list_lookup(cl_data: np.ndarray, aoa: float) -> float:
         cl_i = cl_data[-2][1]
         cl_ii = cl_data[-1][1]
     else:
-        for i in range(len(cl_data)-1):
-            aoa_i = cl_data[i][0]
-            aoa_ii = cl_data[i+1][0]
-            if aoa_i <= aoa <= aoa_ii:
-                cl_i = cl_data[i][1]
-                cl_ii = cl_data[i+1][1]
-                break
+        i = find_closest(cl_data[:,0], aoa)
+        aoa_i = cl_data[i][0]
+        aoa_ii = cl_data[i+1][0]
+        cl_i = cl_data[i][1]
+        cl_ii = cl_data[i+1][1]
     
     cl_interp = (cl_ii - cl_i) / (aoa_ii - aoa_i) * (aoa - aoa_i) + cl_i
     return cl_interp
