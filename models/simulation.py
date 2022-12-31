@@ -50,6 +50,12 @@ class Simulation:
                     matrix_dim=self.matrix_dim
                     )
                 G_dict = self.wing_pool.update_solution(G_solution=G)
+                # Pré-calcular distribuição de alfas e velocidade total por painel
+                total_velocity_dict = self.wing_pool.calculate_total_velocity(
+                    v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+                    G_dict=G_dict
+                    )
+                aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
             # G = [0.1 for _ in range(self.matrix_dim)]
             # G_dict = self.wing_pool.G_dict
 
@@ -58,13 +64,6 @@ class Simulation:
                 G_solution_list.append(G)
             else:
                 while True:
-                    # Pré-calcular distribuição de alfas e velocidade total por painel
-                    total_velocity_dict = self.wing_pool.calculate_total_velocity(
-                        v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
-                        G_dict=G_dict
-                        )
-                    aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
-
                     R_array = calculate_main_equation(
                         total_velocity_dict,
                         aoa_eff_dict,
@@ -84,6 +83,13 @@ class Simulation:
 
                     G = G + delta_G * self.damping_factor                  
                     G_dict = self.wing_pool.update_solution(G)
+
+                    # Pré-calcular distribuição de alfas e velocidade total por painel
+                    total_velocity_dict = self.wing_pool.calculate_total_velocity(
+                        v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+                        G_dict=G_dict
+                        )
+                    aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
 
                     # G_history_list.append(G)
                     iteration += 1
