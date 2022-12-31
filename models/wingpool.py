@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import copy
 from utils.timeit import timeit
+from utils.lookup import get_airfoil_data, get_linear_data
 
 
 """
@@ -97,12 +98,12 @@ class WingPool:
         global_counter = 0
         for wing in self.complete_wing_pool:
             counter = 0
-            G_list = []
+            G_array = np.zeros(wing.N_panels)
             while counter < wing.N_panels:
-                G_list.append(G_solution[global_counter])
+                G_array[counter] = G_solution[global_counter]
                 counter += 1
                 global_counter += 1
-            self.G_dict[wing.surface_name] = G_list
+            self.G_dict[wing.surface_name] = G_array
         return self.G_dict
     
     @timeit
@@ -169,3 +170,24 @@ class WingPool:
             aoa_eff_dict[wing.surface_name] = aoa_eff_distr
             aoa_eff_dict[wing.surface_name+"_mirrored"] = aoa_eff_distr
         return aoa_eff_dict
+
+    
+    def get_Cl_distribution(self, aoa_eff_dict: dict, cl_alpha_check: bool) -> dict:
+        """
+        O método pode retornar tanto a distribuição de Cl quanto a distribuição de Clalpha
+        do sistema de asas
+        """
+        Cl_dict = {}
+        for wing in self.wing_list:
+            Cl_distr = np.zeros(wing.N_panels)
+            aoa_eff_distr = aoa_eff_dict[wing.surface_name]
+            for i, _ in enumerate(wing.collocation_points):
+                Cl_distr[i] = get_airfoil_data(
+                    wing.cp_airfoils[i],
+                    wing.cp_reynolds[i],
+                    aoa_eff_distr[i] * 180 / np.pi,
+                    wing.airfoil_data,
+                    cl_alpha_check = cl_alpha_check
+                )
+            Cl_dict[wing.surface_name] = Cl_distr
+        return Cl_dict
