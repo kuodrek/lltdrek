@@ -15,7 +15,6 @@ class PostProcessing:
 
 
     def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int) -> dict:
-        v_inf_array = np.zeros(3)
         aoa_idx = 0
         Sref = 1
         cref = 1
@@ -26,7 +25,7 @@ class PostProcessing:
             G_i = G_dict[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
                 cm_i = 1
-                aux_cf += G_i[i] * v_inf_array
+                aux_cf += G_i[i] * wing_pool.flight_condition.v_inf_list[aoa_index]
                 for wing_j in wing_pool.complete_wing_pool:
                     G_j = G_dict[wing_j.surface_name]
                     v_ij_distr = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name]
