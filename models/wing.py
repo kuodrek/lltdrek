@@ -182,7 +182,7 @@ class Wing:
         self.vertice_points[:,2] += self.z_pos
         
         # Global values
-        self.total_area = sum(self.partition_areas) * 2
+        self.total_area = sum(self.partition_areas)
         self.MAC = MAC / sum(self.partition_areas)
         self.AR = (2 * self.total_span) ** 2 / (2 * sum(self.partition_areas))
 
