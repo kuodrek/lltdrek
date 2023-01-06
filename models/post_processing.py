@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from models.wingpool import WingPool
 from models.wing import Wing
 from models.flight_condition import FlightCondition
+from utils.lookup import get_linear_data
 
 @dataclass(repr=False, eq=False, match_args=False)
 class PostProcessing:
@@ -14,26 +15,28 @@ class PostProcessing:
         pass
 
 
-    def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int) -> dict:
-        aoa_idx = 0
-        Sref = 1
-        cref = 1
+    def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int, S_ref: float, c_ref: float) -> dict:
         CF = np.zeros(3)
         CM = np.zeros(3)
         for wing_i in wing_pool.complete_wing_pool:
             aux_cf = np.zeros(3)
             G_i = G_dict[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
-                cm_i = 1
+                airfoil_coefficients = get_linear_data(
+                    wing_i.cp_airfoil[i],
+                    wing_i.cp_reynolds[i],
+                    wing_i.airfoil_data
+                )
+                cm_i = airfoil_coefficients["cm0"]
                 aux_cf += G_i[i] * wing_pool.flight_condition.v_inf_list[aoa_index]
                 for wing_j in wing_pool.complete_wing_pool:
                     G_j = G_dict[wing_j.surface_name]
-                    v_ij_distr = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name]
+                    v_ij_distr = wing_pool.ind_velocities_list[aoa_index][wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j]
                         aux_cf += G_i[i] * G_j[j] * v_ij
-                CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / Sref
-                CM += (2 * np.cross(r_list[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.chords[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( Sref * cref )
+                CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
+                CM += (2 * np.cross(r_list[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.chords[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
         # CF = CF * 2
 
         return {
