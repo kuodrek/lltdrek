@@ -132,6 +132,8 @@ def calculate_corrector_equation(
                     j_glob += 1
             i_glob += 1
 
+    print("ATENCAO: CORRECTOR EQUATION: SALVANDO MATRIX J NUM ARQUIVO TXT")
+    np.savetxt("matrix_j", J_matrix)
     delta_G = npla.solve(J_matrix, -R_array)
     return delta_G
 
