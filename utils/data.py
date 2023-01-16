@@ -58,11 +58,13 @@ def cl_file_to_dict(file_path: str):
                     cl_list_temp.append([float(value) for value in cl_line])
             cl_linear_coefs = get_linear_coefs(cl_list_temp)
             cl_list = np.array(cl_list_temp)
+            cl_max = cl_list[:,1].max()
             airfoil_data_dict[reynolds] = {
                 "cl_list": cl_list,
                 "cl_alpha": cl_linear_coefs["cl_alpha"],
                 "cl0": cl_linear_coefs["cl0"],
-                "cm0": cm0
+                "cm0": cm0,
+                "cl_max": cl_max
                 }
     return airfoil_data_dict
 
