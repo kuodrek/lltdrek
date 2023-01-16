@@ -3,13 +3,14 @@ from models.wing import Wing
 from models.flight_condition import FlightCondition
 from models.wingpool import WingPool
 from models.simulation import Simulation
+from models.post_processing import PostProcessing
 from utils import data
 
 
 airfoils_data_dict, airfoils_dat_dict = data.load_folder('airfoils_test')
 
 # Testing terms of the newton corrector equation and its symmetries
-
+print("ATENÇAO, AS FUNCOES DE LOOKUP ESTAO RETORNANDO 1 PARA CL E CL_ALPHA. CL0, CM0 PARA FINS DE COMPARACAO")
 asa = Wing(
         spans=[4.572/2],
         chords=[0.813, 0.325],
@@ -22,6 +23,7 @@ asa = Wing(
         sweep_check=False,
         surface_name='asa'
     )
+
 
 asa.generate_mesh()
 
@@ -50,5 +52,9 @@ simulation = Simulation(
 )
 
 G_solution_list = simulation.run_simulation()
+
+llt_coeficientes = PostProcessing(ref_point=[0, 0, 0])
+
+coefs = llt_coeficientes.get_global_coefficients(wingpool, G_solution_list[0], aoa_index=0, S_ref=asa.total_area*2, c_ref=asa.MAC)
 
 a=1
