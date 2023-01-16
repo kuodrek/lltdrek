@@ -6,40 +6,47 @@ from models.wing import Wing
 from models.flight_condition import FlightCondition
 from utils.lookup import get_airfoil_data, get_linear_data
 
+
 @dataclass(repr=False, eq=False, match_args=False)
 class PostProcessing:
-    reference_point: list
+    ref_point: list
+    ref_points_dict: dict = field(init=False)
 
 
     def __post_init__(self) -> None:
-        pass
-
+        self.ref_points_dict = None
 
     def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int, S_ref: float, c_ref: float) -> dict:
+        if self.ref_points_dict is None:
+            self.build_reference_points_dict(wing_pool)
+
         CF = np.zeros(3)
         CM = np.zeros(3)
         Cl_distr_dict = {}
         for wing_i in wing_pool.complete_wing_pool:
+            ref_points_distr = self.ref_points_dict[wing_i.surface_name]
             Cl_distr = np.zeros(wing_i.N_panels)
-            aux_cf = np.zeros(3)
             G_i = G_dict[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
+                aux_cf = np.zeros(3)
+
                 airfoil_coefficients = get_linear_data(
-                    wing_i.cp_airfoil[i],
+                    wing_i.cp_airfoils[i],
                     wing_i.cp_reynolds[i],
                     wing_i.airfoil_data
                 )
                 cm_i = airfoil_coefficients["cm0"]
-                aux_cf += G_i[i] * wing_pool.flight_condition.v_inf_list[aoa_index]
                 Cl_distr[i] = 2 * G_i[i]
                 for wing_j in wing_pool.complete_wing_pool:
                     G_j = G_dict[wing_j.surface_name]
                     v_ij_distr = wing_pool.ind_velocities_list[aoa_index][wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j]
-                        aux_cf += G_i[i] * G_j[j] * v_ij
+                        aux_cf += G_j[j] * v_ij
+                aux_cf = (aux_cf + wing_pool.flight_condition.v_inf_list[aoa_index]) * G_i[i]
                 CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
-                CM += (2 * np.cross(r_list[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.chords[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+                CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_chords[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+                a=1
             Cl_distr_dict[wing_i.surface_name] = Cl_distr
 
         return {
@@ -47,6 +54,22 @@ class PostProcessing:
             "CM": CM,
             "Cl_distr": Cl_distr_dict
         }
+
+    
+    def build_reference_points_dict(self, wing_pool: WingPool) -> dict:
+        self.ref_points_dict = {}
+        for wing_i in wing_pool.wing_list:
+            ref_point_distr = np.zeros((wing_i.N_panels, 3))
+            ref_point_distr_mirrored  = np.zeros((wing_i.N_panels, 3))
+            for i, cp_i in enumerate(wing_i.collocation_points):
+                ref_point_distr[i,:] = cp_i - self.ref_point
+                ref_point_distr_mirrored[i,:] = cp_i - self.ref_point
+                ref_point_distr_mirrored[i,1] = ref_point_distr_mirrored[i,1] * -1
+
+            self.ref_points_dict[wing_i.surface_name] = ref_point_distr
+            self.ref_points_dict[wing_i.surface_name+"_mirrored"] = ref_point_distr_mirrored
+        
+        return self.ref_points_dict
 
 
     def get_wing_coefficients(self):
@@ -84,8 +107,8 @@ class PostProcessing:
                 for wing_i in wing_pool.wing_list:
                     G_i = G_dict[wing_i.surface_name]
                     for i, _ in enumerate(wing_i.collocation_points):
-                        Cl = get_airfoil_data(
-                            wing_i.cp_airfoil[i],
+                        Cl = get_airfoil_data( # tá errado, tem que ser o CLmax da seção
+                            wing_i.cp_airfoils[i],
                             wing_i.cp_reynolds[i],
                             aoa,
                             wing_i.airfoil_data,
