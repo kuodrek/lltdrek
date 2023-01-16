@@ -42,13 +42,15 @@ class Simulation:
             G_history_list = []
 
             if idx == 0:
-                # Solve linear system to get a better approximation for G
-                G = calculate_main_equation_simplified(
-                    v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
-                    aoa_idx=idx,
-                    wing_pool=self.wing_pool,
-                    matrix_dim=self.matrix_dim
-                    )
+            #     # Solve linear system to get a better approximation for G
+            #     G = calculate_main_equation_simplified(
+            #         v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+            #         aoa_idx=idx,
+            #         wing_pool=self.wing_pool,
+            #         matrix_dim=self.matrix_dim
+            #         )
+                G = [0.1 for _ in range(self.matrix_dim)]
+                G_dict = self.wing_pool.G_dict
                 G_dict = self.wing_pool.update_solution(G_solution=G)
                 # Pré-calcular distribuição de alfas e velocidade total por painel
                 total_velocity_dict = self.wing_pool.calculate_total_velocity(
@@ -56,10 +58,15 @@ class Simulation:
                     G_dict=G_dict
                     )
                 aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
-            # G = [0.1 for _ in range(self.matrix_dim)]
-            # G_dict = self.wing_pool.G_dict
+            
 
-            if self.linear_check:
+            if self.linear_check and idx > 0:
+                G = calculate_main_equation_simplified(
+                    v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+                    aoa_idx=idx,
+                    wing_pool=self.wing_pool,
+                    matrix_dim=self.matrix_dim
+                    )
                 print(f"Found solution for angle {aoa}")
                 G_solution_list.append(G)
             else:
