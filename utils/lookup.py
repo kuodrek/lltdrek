@@ -37,6 +37,7 @@ def get_airfoil_data(
     else:
         airfoil = cp_airfoil[1][0]
         Cl = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
+    Cl = 1 if cl_alpha_check is False else np.pi/180
     return Cl
 
 
@@ -66,6 +67,11 @@ def get_linear_data(
         airfoil = cp_airfoil[1][0]
         linear_data = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
     
+    linear_data = {
+        "cl_alpha": np.pi/180,
+        "cl0": 1,
+        "cm0": 1
+    }
     return linear_data
 
 
