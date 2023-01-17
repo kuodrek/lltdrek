@@ -45,7 +45,7 @@ wingpool = WingPool(
 
 simulation = Simulation(
     wing_pool=wingpool,
-    damping_factor=0.05,
+    damping_factor=0.2,
     max_iter=1000,
     max_residual=1e-3,
     linear_check=False
