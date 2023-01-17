@@ -121,19 +121,20 @@ def calculate_corrector_equation(
                     coef_ij_m = 2 * np.dot(w_i,np.cross(v_ij_m, wing_i.cp_dsl[i]))*G_distr[i] / w_i_abs \
                         - Cl_alpha_i * (v_a_i * np.dot(v_ij_m, u_n_i) - v_n_i * np.dot(v_ij_m, u_a_i)) /(v_a_i ** 2 + v_n_i ** 2)
     
-                    if wing_i.surface_name == wing_j.surface_name and i == j:
-                        coef_ij += 2 * w_i_abs
-                    
                     if wing_i.parent_wing == wing_j.surface_name and i_glob == (N_panels+j_glob):
                         coef_ij_m += 2 * w_i_abs
+                        if "_mirrored" in wing_i.surface_name: # Essa parcela está sendo desconsiderada no llt original. Por quê?
+                            coef_ij = 0
+
+                    if wing_i.surface_name == wing_j.surface_name and i == j:
+                        coef_ij += 2 * w_i_abs
+                        coef_ij_m = 0
                     
                     J_matrix[i_glob][j_glob] = coef_ij
                     J_matrix[i_glob][N_panels+j_glob] = coef_ij_m
                     j_glob += 1
             i_glob += 1
 
-    print("ATENCAO: CORRECTOR EQUATION: SALVANDO MATRIX J NUM ARQUIVO TXT")
-    np.savetxt("matrix_j", J_matrix)
     delta_G = npla.solve(J_matrix, -R_array)
     return delta_G
 
