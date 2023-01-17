@@ -38,7 +38,7 @@ class Simulation:
         G_solution_list = []
         aoa_history_list = []
         for idx, aoa in enumerate(self.wing_pool.flight_condition.aoa):
-            iteration = 0
+            iteration = 1
             G_history_list = []
 
             if idx == 0:
@@ -88,18 +88,6 @@ class Simulation:
                         self.matrix_dim
                     )
 
-                    G = G + delta_G * self.damping_factor                  
-                    G_dict = self.wing_pool.update_solution(G)
-
-                    # Pré-calcular distribuição de alfas e velocidade total por painel
-                    total_velocity_dict = self.wing_pool.calculate_total_velocity(
-                        v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
-                        G_dict=G_dict
-                        )
-                    aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
-
-                    # G_history_list.append(G)
-                    iteration += 1
                     if iteration > self.max_iter:
                         G_solution_list.append(np.nan)
                         print(f"Reached max iterations for angle {aoa}")
@@ -109,5 +97,17 @@ class Simulation:
                         print(f"Found solution for angle {aoa}")
                         print(f"number of iterations: {iteration}")
                         break
+                    else:
+                        G = G + delta_G * self.damping_factor                  
+                        G_dict = self.wing_pool.update_solution(G)
+
+                        # Pré-calcular distribuição de alfas e velocidade total por painel
+                        total_velocity_dict = self.wing_pool.calculate_total_velocity(
+                            v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
+                            G_dict=G_dict
+                            )
+                        aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
+                        iteration += 1
+
             aoa_history_list.append(G_history_list)
         return G_solution_list
