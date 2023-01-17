@@ -40,12 +40,14 @@ class WingPool:
     ind_velocities_dict: Dict = field(init=False)
     G_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
+    total_panels: int = field(init=False)
 
     @timeit
     def __post_init__(self):
         self.G_dict = {}
         self.complete_wing_pool = []
         self.ind_velocities_list = []
+        self.total_panels = 0
 
         if(len(set(self.wing_list)) == len(self.wing_list)):
             self.build_complete_wing_pool()
@@ -53,6 +55,7 @@ class WingPool:
             raise Exception("As asas que compõem a wing pool precisam ter nomes únicos")
         
         for _, wing in enumerate(self.complete_wing_pool):
+            self.total_panels += wing.N_panels
             if self.initial_G == None:
                 self.G_dict[wing.surface_name] = [0.1 for _ in range(wing.N_panels)]
             else:
@@ -82,7 +85,9 @@ class WingPool:
             mirrored_wing.collocation_points[:,1] = -1 * mirrored_wing.collocation_points[:,1]
             mirrored_wing.vertice_points[:,1] = -1 * mirrored_wing.vertice_points[:,1]
             mirrored_wing.cp_lengths[:,1] = -1 * mirrored_wing.cp_lengths[:,1]
-            mirrored_wing.cp_dsl[:,1] = -1 * mirrored_wing.cp_dsl[:,1]
+            mirrored_wing.cp_dsl[:,0] = -1 * mirrored_wing.cp_dsl[:,0]
+            mirrored_wing.cp_dsl[:,2] = -1 * mirrored_wing.cp_dsl[:,2]
+            
             mirrored_wing.parent_wing = wing.surface_name
 
             self.complete_wing_pool.append(wing)
