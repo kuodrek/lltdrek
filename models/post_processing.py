@@ -20,8 +20,15 @@ class PostProcessing:
         if self.ref_points_dict is None:
             self.build_reference_points_dict(wing_pool)
 
+        v_inf = wing_pool.flight_condition.v_inf_list[aoa_index]
+        aoa = wing_pool.flight_condition.aoa[aoa_index]
+        aoa_rad = aoa * np.pi / 180
+
         CF = np.zeros(3)
         CM = np.zeros(3)
+        CF_distr = np.zeros((wing_pool.total_panels, 3))
+        CM_distr = np.zeros((wing_pool.total_panels, 3))
+        i_glob = 0
         Cl_distr_dict = {}
         for wing_i in wing_pool.complete_wing_pool:
             ref_points_distr = self.ref_points_dict[wing_i.surface_name]
@@ -43,12 +50,22 @@ class PostProcessing:
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j]
                         aux_cf += G_j[j] * v_ij
-                aux_cf = (aux_cf + wing_pool.flight_condition.v_inf_list[aoa_index]) * G_i[i]
+                aux_cf = (aux_cf +v_inf) * G_i[i]
                 CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
-                CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_chords[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
-                a=1
+                CF_distr[i_glob,:] = 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
+                CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+                CM_distr[i_glob,:] = (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+
+                i_glob += 1
             Cl_distr_dict[wing_i.surface_name] = Cl_distr
 
+        # Rebater os coeficientes de forças para o eixo do escoamento
+        rotation_matrix = np.array(
+            [[np.cos(aoa_rad), 0, np.sin(aoa_rad)],
+            [0, 1, 0],
+            [-1*np.sin(aoa_rad), 0, np.cos(aoa_rad)]]
+        )
+        CF = np.matmul(rotation_matrix, CF)
         return {
             "CF": CF,
             "CM": CM,
