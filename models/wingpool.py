@@ -124,7 +124,7 @@ class WingPool:
             for wing_vp in self.complete_wing_pool:
                 vertice_points = wing_vp.vertice_points
                 v_ij_distr = velocity.get_induced_velocity_distribution(
-                    collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name
+                    collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name, self.flight_condition.ground_effect_check, self.flight_condition.h
                 )
                 ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
         return ind_velocities_dict
