@@ -55,6 +55,6 @@ G_solution_list = simulation.run_simulation()
 
 llt_coeficientes = PostProcessing(ref_point=[0, 0, 0])
 
-coefs = llt_coeficientes.get_global_coefficients(wingpool, G_solution_list[0], aoa_index=0, S_ref=asa.total_area*2, c_ref=asa.MAC)
-
+# coefs = llt_coeficientes.get_global_coefficients(wingpool, G_solution_list[0], aoa_index=0, S_ref=asa.total_area*2, c_ref=asa.MAC)
+CLmax = llt_coeficientes.get_CL_max_linear(wingpool, G_solution_list, None, S_ref=asa.total_area*2)
 a=1
