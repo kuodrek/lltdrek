@@ -97,8 +97,7 @@ class PostProcessing:
         self,
         wing_pool: WingPool,
         G_list: list[dict],
-        aoa_range: Union[tuple[float],
-        None],
+        aoa_range: Union[tuple[float],None],
         S_ref: float,
     ) -> float:
         """
@@ -140,5 +139,53 @@ class PostProcessing:
         return coefficients["CF"][2]
 
 
-    def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict]) -> float:
-        pass
+    def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref, c_ref) -> float:
+        aoa_list = wing_pool.flight_condition.aoa
+        if aoa_1 not in aoa_list or aoa_2 not in aoa_list:
+            raise Exception(f"Ambos aoa_1 e aoa_2 precisam estar dentro da lista de ângulos de ataque")
+
+        aoa_1_idx = aoa_list.index(aoa_1)
+        aoa_2_idx = aoa_list.index(aoa_2)
+
+        ac = 0.25*c_ref
+        ac_min = 0.1*c_ref
+        ac_max = 1.5*c_ref
+        max_iter = 100
+        
+        self.ref_point = [ac, 0, 0]
+        ac_check = False
+        
+        i = 1
+        while not ac_check:
+            if i > max_iter:
+                print("Limite máximo de iterações atingido")
+                break
+            
+            self.build_reference_points_dict(wing_pool)
+
+            coefs_1 = self.get_global_coefficients(wing_pool, G_list, aoa_index=aoa_1_idx, S_ref=S_ref, c_ref=c_ref)
+            Cm_1 = coefs_1["CM"][1]
+            coefs_2 = self.get_global_coefficients(wing_pool, G_list, aoa_index=aoa_2_idx, S_ref=S_ref, c_ref=c_ref)
+            Cm_2 = coefs_2["CM"][1]
+
+            Cm_alpha = (Cm_2 - Cm_1) / (aoa_2 - aoa_1)
+            if abs(Cm_alpha) <= 1e-6 or i == max_iter:
+                Cm_ac = Cm_1
+                ac_check = True
+                x_ac = ac / c_ref
+            else:
+                if Cm_alpha < 0:
+                    ac_min = ac
+                    ac = (ac + ac_max) / 2
+                    self.ref_point = [ac, 0, 0]
+                else:
+                    ac_max = ac
+                    ac = (ac_min + ac_max) / 2
+                    self.ref_point [ac, 0, 0]
+            i += 1
+
+        return {
+            "x_ac": x_ac,
+            "Cm_ac": Cm_ac
+        }
+
