@@ -17,7 +17,7 @@ def get_airfoil_data(
     de Cl's caso necessário.
     - Para o caso de um perfil com mescla, a interpolação de dados se dá
     pela seguinte formula: 
-        - Cl_perfil = Cl_raiz * merge_parameter + Cl_ponta * (1 - merge_parameter),
+        - Cl_perfil = Cl_raiz * (1 - merge_parameter) + Cl_ponta * (1 - merge_parameter),
     onde merge_parameter = cp_airfoil[0]
     - A verificação da mescla de dados entre perfis é feita olhando-se o tamanho
     do segundo índice da lista cp_airfoil (caso a lista de perfis seja > 1)
@@ -33,7 +33,7 @@ def get_airfoil_data(
         airfoil_tip = cp_airfoil[1][1]
         Cl_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
 
-        Cl = Cl_root * merge_parameter + Cl_tip * (1 - merge_parameter)
+        Cl = Cl_root * (1 - merge_parameter) + Cl_tip * merge_parameter
     else:
         airfoil = cp_airfoil[1][0]
         Cl = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
@@ -41,38 +41,40 @@ def get_airfoil_data(
     return Cl
 
 
-def get_linear_data(
+def get_linear_data_and_clmax(
     cp_airfoil: list,
     cp_reynolds: float,
     airfoil_data: dict
     ) -> dict:
     """
-    Função que realizar o lookup nos dados lineares
+    Função que realizar o lookup nos dados lineares e clmax
     Número de Reynolds utilizado é o mais próximo de cp_reynolds
     """
     if len(cp_airfoil[1]) > 1:
         merge_parameter = cp_airfoil[0]
 
         airfoil_root = cp_airfoil[1][0]
-        linear_data_root = cl_lookup(airfoil_data[airfoil_root], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
+        lookup_data_root = cl_lookup(airfoil_data[airfoil_root], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
         airfoil_tip = cp_airfoil[1][1]
-        linear_data_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
+        lookup_data_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
 
-        linear_data = {
-            "cl_alpha": linear_data_root["cl_alpha"] * merge_parameter + linear_data_tip["cl_alpha"] * (1 - merge_parameter),
-            "cl0": linear_data_root["cl0"] * merge_parameter + linear_data_tip["cl0"] * (1 - merge_parameter),
-            "cm0": linear_data_root["cm0"] * merge_parameter + linear_data_tip["cm0"] * (1 - merge_parameter)
+        lookup_data = {
+            "cl_alpha": lookup_data_root["cl_alpha"] * (1 - merge_parameter) + lookup_data_tip["cl_alpha"] * merge_parameter,
+            "cl0": lookup_data_root["cl0"] * (1 - merge_parameter) + lookup_data_tip["cl0"] * merge_parameter,
+            "cm0": lookup_data_root["cm0"] * (1 - merge_parameter) + lookup_data_tip["cm0"] * merge_parameter,
+            "clmax": lookup_data_root["clmax"] * (1 - merge_parameter) + lookup_data_tip["clmax"] * merge_parameter,
         }
     else:
         airfoil = cp_airfoil[1][0]
-        linear_data = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
+        lookup_data = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
     
-    linear_data = {
+    lookup_data = {
         "cl_alpha": np.pi/180,
         "cl0": 1,
-        "cm0": 1
+        "cm0": 1,
+        "clmax": lookup_data["clmax"]
     }
-    return linear_data
+    return lookup_data
 
 
 def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_alpha_check: bool, linear_check: bool) -> float:
@@ -91,6 +93,7 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
                 "cl_alpha": airfoil_data_dict[reynolds_list_str[0]]["cl_alpha"],
                 "cl0": airfoil_data_dict[reynolds_list_str[0]]["cl0"],
                 "cm0": airfoil_data_dict[reynolds_list_str[0]]["cm0"], 
+                "clmax": airfoil_data_dict[reynolds_list_str[0]]["clmax"], 
             }
 
         cl_data = airfoil_data_dict[reynolds_list_str[0]]["cl_list"]
@@ -102,6 +105,7 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
                 "cl_alpha": airfoil_data_dict[reynolds_list_str[-1]]["cl_alpha"],
                 "cl0": airfoil_data_dict[reynolds_list_str[-1]]["cl0"],
                 "cm0": airfoil_data_dict[reynolds_list_str[-1]]["cm0"], 
+                "clmax": airfoil_data_dict[reynolds_list_str[-1]]["clmax"],
             }
 
         cl_data = airfoil_data_dict[reynolds_list_str[-1]]["cl_list"]
@@ -119,10 +123,13 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
                     cl0_ii = airfoil_data_dict[reynolds_list_str[i+1]]["cl0"]
                     cm0_i = airfoil_data_dict[reynolds_list_str[i]]["cm0"]
                     cm0_ii = airfoil_data_dict[reynolds_list_str[i+1]]["cm0"]
+                    clmax_i = airfoil_data_dict[reynolds_list_str[i]]["clmax"]
+                    clmax_ii = airfoil_data_dict[reynolds_list_str[i+1]]["clmax"]
                     return {
                         "cl_alpha": (cl_alpha_ii - cl_alpha_i)/(re_ii - re_i) * (reynolds_number - re_i) + cl_alpha_i,
                         "cl0": (cl0_ii - cl0_i)/(re_ii - re_i) * (reynolds_number - re_i) + cl0_i,
                         "cm0": (cm0_ii - cm0_i)/(re_ii - re_i) * (reynolds_number - re_i) + cm0_i,
+                        "clmax": (clmax_ii - clmax_i)/(re_ii - re_i) * (reynolds_number - re_i) + clmax_i,
                     }
 
                 cl_data_i = airfoil_data_dict[reynolds_list_str[i]]["cl_list"]
