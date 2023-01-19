@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import copy
 from utils.timeit import timeit
-from utils.lookup import get_airfoil_data, get_linear_data
+from utils.lookup import get_airfoil_data
 
 
 """

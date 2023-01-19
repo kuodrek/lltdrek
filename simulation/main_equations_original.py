@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.linalg as npla
 from models.wingpool import WingPool
-from utils.lookup import get_airfoil_data, get_linear_data
+from utils.lookup import get_airfoil_data, get_linear_data_and_clmax
 from utils.timeit import timeit
 
 
@@ -18,7 +18,7 @@ def calculate_main_equation_simplified(
     for wing_i in wing_pool.complete_wing_pool:
             for i, _ in enumerate(wing_i.collocation_points):
                 A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, wing_i.cp_dsl[i]))
-                linear_data = get_linear_data(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
+                linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
                 Cl_0_i = linear_data["cl0"] * np.pi / 180
                 Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
                 al_0_i = -Cl_0_i/Cl_alpha_i
