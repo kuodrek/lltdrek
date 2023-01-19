@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from models.wingpool import WingPool
 from models.wing import Wing
 from models.flight_condition import FlightCondition
-from utils.lookup import get_airfoil_data, get_linear_data
+from utils.lookup import get_airfoil_data, get_linear_data_and_clmax
 
 
 @dataclass(repr=False, eq=False, match_args=False)
@@ -37,7 +37,7 @@ class PostProcessing:
             for i, _ in enumerate(wing_i.collocation_points):
                 aux_cf = np.zeros(3)
 
-                airfoil_coefficients = get_linear_data(
+                airfoil_coefficients = get_linear_data_and_clmax(
                     wing_i.cp_airfoils[i],
                     wing_i.cp_reynolds[i],
                     wing_i.airfoil_data
@@ -100,7 +100,6 @@ class PostProcessing:
         aoa_range: Union[tuple[float],
         None],
         S_ref: float,
-        c_ref: float
     ) -> float:
         """
         Obtenção do CL máximo de uma asa (ou sistema de asas) através do método da seção crítica
@@ -119,23 +118,24 @@ class PostProcessing:
 
         CLmax_check = False
         for aoa_idx, aoa in enumerate(wing_pool.flight_condition.aoa):
-            if aoa_start <= aoa <= aoa_end and CLmax_check:
+            if aoa_start <= aoa <= aoa_end and not CLmax_check:
                 G_dict = G_list[aoa_idx]
                 for wing_i in wing_pool.wing_list:
                     G_i = G_dict[wing_i.surface_name]
                     for i, _ in enumerate(wing_i.collocation_points):
-                        Cl = get_airfoil_data( # tá errado, tem que ser o CLmax da seção
+                        lookup_data = get_linear_data_and_clmax(
                             wing_i.cp_airfoils[i],
                             wing_i.cp_reynolds[i],
-                            aoa,
-                            wing_i.airfoil_data,
-                            cl_alpha_check=False
+                            wing_i.airfoil_data
                         )
-                        if 2 * G_i[i] > Cl:
+                        Clmax_i = lookup_data["clmax"]
+                        if 2 * G_i[i] > Clmax_i:
                             CLmax_check = True
                             aoa_max_idx = aoa_idx - 1 if aoa_idx > 0 else 0
-
+        if not CLmax_check:
+            aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.aoa.index(aoa_range[-1])
         G_dict = G_list[aoa_max_idx]
+        c_ref = 1 # O valor de c_ref pode ser qualquer um aqui porque nao vamos pegar coeficiente de momento
         coefficients = self.get_global_coefficients(wing_pool, G_dict, aoa_max_idx, S_ref, c_ref)
         return coefficients["CF"][2]
 
