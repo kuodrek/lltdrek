@@ -60,15 +60,16 @@ class Simulation:
                 aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
             
 
-            if self.linear_check and idx > 0:
+            if self.linear_check:
                 G = calculate_main_equation_simplified(
                     v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
                     aoa_idx=idx,
                     wing_pool=self.wing_pool,
                     matrix_dim=self.matrix_dim
                     )
+                G_dict = self.wing_pool.update_solution(G)
                 print(f"Found solution for angle {aoa}")
-                G_solution_list.append(G)
+                G_solution_list.append(G_dict)
             else:
                 while True:
                     R_array = calculate_main_equation(
