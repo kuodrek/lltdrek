@@ -37,6 +37,8 @@ class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
     initial_G: Dict = None
+    S_ref: float = None
+    c_ref: float = None
     ind_velocities_dict: Dict = field(init=False)
     G_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
@@ -48,7 +50,16 @@ class WingPool:
         self.complete_wing_pool = []
         self.ind_velocities_list = []
         self.total_panels = 0
+        self.S_ref
+        self.c_ref 
 
+        if self.S_ref is None:
+            for _, wing in enumerate(self.complete_wing_pool):
+                self.S_ref += wing.total_area * 2
+        
+        if self.c_ref is None:
+            self.c_ref = self.wing_list[0].MAC
+        
         if(len(set(self.wing_list)) == len(self.wing_list)):
             self.build_complete_wing_pool()
         else:
@@ -181,6 +192,7 @@ class WingPool:
         """
         O método pode retornar tanto a distribuição de Cl quanto a distribuição de Clalpha
         do sistema de asas
+        Não é utilizado atualmente
         """
         Cl_dict = {}
         for wing in self.wing_list:
