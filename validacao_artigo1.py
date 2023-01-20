@@ -7,7 +7,7 @@ from models.post_processing import PostProcessing
 from utils import data
 
 
-airfoils_data_dict, airfoils_dat_dict = data.load_folder('airfoils_test')
+airfoils_data_dict, airfoils_dat_dict = data.load_folder('airfoils',aoa_polyfit_min=0,aoa_polyfit_max=10)
 
 # Testing terms of the newton corrector equation and its symmetries
 print("ATENÇAO, AS FUNCOES DE LOOKUP ESTAO RETORNANDO 1 PARA CL E CL_ALPHA. CL0, CM0 PARA FINS DE COMPARACAO")
@@ -55,6 +55,6 @@ G_solution_list = simulation.run_simulation()
 
 llt_coeficientes = PostProcessing(ref_point=[0, 0, 0])
 
-# coefs = llt_coeficientes.get_global_coefficients(wingpool, G_solution_list[0], aoa_index=0, S_ref=asa.total_area*2, c_ref=asa.MAC)
-CLmax = llt_coeficientes.get_CL_max_linear(wingpool, G_solution_list, None, S_ref=asa.total_area*2)
+coefs = llt_coeficientes.get_global_coefficients(wingpool, G_solution_list[0], aoa_index=0, S_ref=asa.total_area*2, c_ref=asa.MAC)
+# CLmax = llt_coeficientes.get_CL_max_linear(wingpool, G_solution_list, None, S_ref=asa.total_area*2)
 a=1
