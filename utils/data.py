@@ -1,12 +1,13 @@
 import os
 import numpy as np
+from typing import Union
 
 
 AOA_POLYFIT_MIN = 0
 AOA_POLYFIT_MAX = 8
 
 
-def load_folder(folder_name: str, aoa_polyfit_min: None, aoa_polyfit_max: None):
+def load_folder(folder_name: str, aoa_polyfit_min: Union[float, int] = None, aoa_polyfit_max: Union[float, int] = None):
     if aoa_polyfit_min is None or aoa_polyfit_max is None:
         aoa_polyfit_min = AOA_POLYFIT_MIN
         aoa_polyfit_max = AOA_POLYFIT_MAX
