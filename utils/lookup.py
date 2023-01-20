@@ -37,7 +37,6 @@ def get_airfoil_data(
     else:
         airfoil = cp_airfoil[1][0]
         Cl = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
-    Cl = 1 if cl_alpha_check is False else np.pi/180
     return Cl
 
 
@@ -68,12 +67,6 @@ def get_linear_data_and_clmax(
         airfoil = cp_airfoil[1][0]
         lookup_data = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
     
-    lookup_data = {
-        "cl_alpha": np.pi/180,
-        "cl0": 1,
-        "cm0": 1,
-        "clmax": lookup_data["clmax"]
-    }
     return lookup_data
 
 
@@ -161,11 +154,12 @@ def aoa_list_lookup(cl_data: np.ndarray, aoa: float) -> float:
         cl_i = cl_data[-2][1]
         cl_ii = cl_data[-1][1]
     else:
-        i = find_closest(cl_data[:,0], aoa)
-        aoa_i = cl_data[i][0]
-        aoa_ii = cl_data[i+1][0]
-        cl_i = cl_data[i][1]
-        cl_ii = cl_data[i+1][1]
+        for i, _ in enumerate(cl_data[0:-1,0]):
+            if cl_data[i][0] < aoa < cl_data[i+1][0]:
+                aoa_i = cl_data[i][0]
+                aoa_ii = cl_data[i+1][0]
+                cl_i = cl_data[i][1]
+                cl_ii = cl_data[i+1][1]
     
     cl_interp = (cl_ii - cl_i) / (aoa_ii - aoa_i) * (aoa - aoa_i) + cl_i
     return cl_interp
@@ -190,22 +184,20 @@ def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float) -> float:
         aoa_ii = cl_data[1][0]
         cl_i = cl_data[0][1]
         cl_ii = cl_data[1][1]
-        
     elif aoa >= cl_data[-1][0]:
         aoa_i = cl_data[-2][0]
         aoa_ii = cl_data[-1][0]
         cl_i = cl_data[-2][1]
         cl_ii = cl_data[-1][1]
-
     else:
-        i = find_closest(cl_data[:,0], aoa)
-        aoa_i = cl_data[i][0]
-        aoa_ii = cl_data[i+1][0]
-        cl_i = cl_data[i][1]
-        cl_ii = cl_data[i+1][1]
+        for i, _ in enumerate(cl_data[0:-1,0]):
+            if cl_data[i][0] < aoa < cl_data[i+1][0]:
+                aoa_i = cl_data[i][0]
+                aoa_ii = cl_data[i+1][0]
+                cl_i = cl_data[i][1]
+                cl_ii = cl_data[i+1][1]
     
     cl_alpha = (cl_ii - cl_i) / (aoa_ii - aoa_i)
-
     return cl_alpha
 
 
