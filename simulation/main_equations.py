@@ -27,7 +27,7 @@ def calculate_main_equation_simplified(
                 alpha_zero_lift = -Cl0_i/Cl_alpha_i
 
                 A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, wing_i.cp_dsl[i]))
-                B_matrix[i_glob] = Cl_alpha_i * (np.dot(v_inf_array, wing_i.u_n[i])-alpha_zero_lift)
+                B_matrix[i_glob] = Cl_alpha_i * (np.dot(v_inf_array, wing_i.u_n[i]) - alpha_zero_lift)
 
                 j_glob = 0
                 for wing_j in wing_pool.complete_wing_pool:
