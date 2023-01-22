@@ -4,3 +4,4 @@ venv/
 airfoils/
 testes*
 .env
+todo.md
