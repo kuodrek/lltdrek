@@ -32,14 +32,14 @@ aoa_eff_dict = {
 """
 
 
-@dataclass(repr=False, eq=False, match_args=False)
+@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
     initial_G: Dict = None
     S_ref: float = None
     c_ref: float = None
-    ind_velocities_dict: Dict = field(init=False)
+    ind_velocities_list: List = field(init=False)
     G_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
     total_panels: int = field(init=False)
@@ -50,12 +50,6 @@ class WingPool:
         self.complete_wing_pool = []
         self.ind_velocities_list = []
         self.total_panels = 0
-        self.S_ref
-        self.c_ref 
-
-        if self.S_ref is None:
-            for _, wing in enumerate(self.complete_wing_pool):
-                self.S_ref += wing.total_area * 2
         
         if self.c_ref is None:
             self.c_ref = self.wing_list[0].MAC
@@ -65,6 +59,11 @@ class WingPool:
         else:
             raise Exception("As asas que compõem a wing pool precisam ter nomes únicos")
         
+        if self.S_ref is None:
+            self.S_ref = 0
+            for _, wing in enumerate(self.complete_wing_pool):
+                self.S_ref += wing.total_area
+
         for _, wing in enumerate(self.complete_wing_pool):
             self.total_panels += wing.N_panels
             if self.initial_G == None:
@@ -111,6 +110,7 @@ class WingPool:
         the main equations, into separate solution lists for each wing in the
         complete_wing_pool
         """
+        G_dict = {}
         global_counter = 0
         for wing in self.complete_wing_pool:
             counter = 0
@@ -119,8 +119,8 @@ class WingPool:
                 G_array[counter] = G_solution[global_counter]
                 counter += 1
                 global_counter += 1
-            self.G_dict[wing.surface_name] = G_array
-        return self.G_dict
+            G_dict[wing.surface_name] = G_array
+        return G_dict
     
     @timeit
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
@@ -141,22 +141,16 @@ class WingPool:
         return ind_velocities_dict
 
 
-    def calculate_total_velocity(self, v_inf_array: np.ndarray, G_dict: dict):
+    def calculate_total_velocity(self, aoa_idx: int, G_dict: dict):
         """
         WIP
         Method that calculates the sum of vij * G  + v_inf of all wings
         - Dá pra acelerar esse método calculando somente a velocidade dos objetos originais e copiando para os objetos 
         espelhados
         """
-        aoa_index = np.nan
-        for idx, array in enumerate(self.flight_condition.v_inf_list):
-            if np.array_equal(v_inf_array, array):
-                aoa_index = idx
-                break
-        if aoa_index == np.nan:
-            raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
+        v_inf_array = self.flight_condition.v_inf_list[aoa_idx]
         
-        ind_velocities_dict = self.ind_velocities_list[aoa_index]
+        ind_velocities_dict = self.ind_velocities_list[aoa_idx]
         total_velocity_dict = {}
         for wing in self.complete_wing_pool:
             total_velocity_dict[wing.surface_name] = np.zeros((wing.N_panels,3))
