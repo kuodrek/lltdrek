@@ -2,11 +2,11 @@ import numpy as np
 from models.flight_condition import FlightCondition
 import utils.geometry as geo
 import math
-from typing import List, Union
+from typing import List, Union, Optional
 from dataclasses import dataclass, field
 
 
-@dataclass(repr=False, eq=False, match_args=False)
+@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class Wing:
     spans: List[float]
     chords: List[float]
@@ -40,6 +40,7 @@ class Wing:
     partition_areas: np.ndarray = field(init=False)
     total_area: float = field(init=False)
     AR: float = field(init=False)
+    parent_wing: Optional[str] = field(init=False)
 
     allowed_distribution_types = [
         "linear",
@@ -52,6 +53,7 @@ class Wing:
         # Convert degree to rad
         self.twist_angles = [angle * np.pi / 180 for angle in self.twist_angles]
         self.dihedral_angles = [angle * np.pi / 180 for angle in self.dihedral_angles]
+        self.parent_wing = None # Usado para asas espelhadas
     
 
     def __repr__(self) -> None:
@@ -180,7 +182,7 @@ class Wing:
         self.vertice_points[:,2] += self.z_pos
         
         # Global values
-        self.total_area = sum(self.partition_areas) * 2
+        self.total_area = sum(self.partition_areas)
         self.MAC = MAC / sum(self.partition_areas)
         self.AR = (2 * self.total_span) ** 2 / (2 * sum(self.partition_areas))
 
