@@ -7,7 +7,7 @@ from models.flight_condition import FlightCondition
 from utils.lookup import get_airfoil_data, get_linear_data_and_clmax
 
 
-@dataclass(repr=False, eq=False, match_args=False)
+@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class PostProcessing:
     ref_point: list
     ref_points_dict: dict = field(init=False)
@@ -19,6 +19,18 @@ class PostProcessing:
     def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int, S_ref: float, c_ref: float) -> dict:
         if self.ref_points_dict is None:
             self.build_reference_points_dict(wing_pool)
+        
+        if type(G_dict) != dict:
+            CF = np.array((np.nan, np.nan, np.nan))
+            CM = np.array((np.nan, np.nan, np.nan))
+            Cl_distr_dict = {}
+            for wing in wing_pool.complete_wing_pool:
+                Cl_distr_dict[wing.surface_name] = np.nan
+            return {
+                "CF": CF,
+                "CM": CM,
+                "Cl_distr": Cl_distr_dict
+            }
 
         v_inf = wing_pool.flight_condition.v_inf_list[aoa_index]
         aoa = wing_pool.flight_condition.aoa[aoa_index]
@@ -50,7 +62,7 @@ class PostProcessing:
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j]
                         aux_cf += G_j[j] * v_ij
-                aux_cf = (aux_cf +v_inf) * G_i[i]
+                aux_cf = (aux_cf + v_inf) * G_i[i]
                 CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
                 CF_distr[i_glob,:] = 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
                 CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
@@ -119,6 +131,7 @@ class PostProcessing:
         for aoa_idx, aoa in enumerate(wing_pool.flight_condition.aoa):
             if aoa_start <= aoa <= aoa_end and not CLmax_check:
                 G_dict = G_list[aoa_idx]
+                if type(G_dict) != dict: continue # Pula a iteração caso G_dict = nan (não convergiu)
                 for wing_i in wing_pool.wing_list:
                     G_i = G_dict[wing_i.surface_name]
                     for i, _ in enumerate(wing_i.collocation_points):
@@ -134,12 +147,17 @@ class PostProcessing:
         if not CLmax_check:
             aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.aoa.index(aoa_range[-1])
         G_dict = G_list[aoa_max_idx]
+        aoa_max = wing_pool.flight_condition.aoa[aoa_max_idx]
         c_ref = 1 # O valor de c_ref pode ser qualquer um aqui porque nao vamos pegar coeficiente de momento
         coefficients = self.get_global_coefficients(wing_pool, G_dict, aoa_max_idx, S_ref, c_ref)
-        return coefficients["CF"][2]
+        return {
+            "CLmax": coefficients["CF"][2],
+            "aoa_max": aoa_max,
+            "aoa_max_idx": aoa_max_idx
+        }
 
 
-    def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref, c_ref) -> float:
+    def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref: float, c_ref: float) -> dict:
         aoa_list = wing_pool.flight_condition.aoa
         if aoa_1 not in aoa_list or aoa_2 not in aoa_list:
             raise Exception(f"Ambos aoa_1 e aoa_2 precisam estar dentro da lista de ângulos de ataque")
@@ -163,9 +181,9 @@ class PostProcessing:
             
             self.build_reference_points_dict(wing_pool)
 
-            coefs_1 = self.get_global_coefficients(wing_pool, G_list, aoa_index=aoa_1_idx, S_ref=S_ref, c_ref=c_ref)
+            coefs_1 = self.get_global_coefficients(wing_pool, G_list[0], aoa_index=aoa_1_idx, S_ref=S_ref, c_ref=c_ref)
             Cm_1 = coefs_1["CM"][1]
-            coefs_2 = self.get_global_coefficients(wing_pool, G_list, aoa_index=aoa_2_idx, S_ref=S_ref, c_ref=c_ref)
+            coefs_2 = self.get_global_coefficients(wing_pool, G_list[1], aoa_index=aoa_2_idx, S_ref=S_ref, c_ref=c_ref)
             Cm_2 = coefs_2["CM"][1]
 
             Cm_alpha = (Cm_2 - Cm_1) / (aoa_2 - aoa_1)
@@ -181,7 +199,7 @@ class PostProcessing:
                 else:
                     ac_max = ac
                     ac = (ac_min + ac_max) / 2
-                    self.ref_point [ac, 0, 0]
+                    self.ref_point = [ac, 0, 0]
             i += 1
 
         return {
