@@ -15,22 +15,26 @@ def calculate_main_equation_simplified(
     B_matrix = np.zeros(matrix_dim)
 
     i_glob = 0
+    Cl_alpha_array = np.zeros(matrix_dim) # Used for debugging purposes
+    Cl0_array = np.zeros(matrix_dim) # Used for debugging purposes
     for wing_i in wing_pool.complete_wing_pool:
             for i, _ in enumerate(wing_i.collocation_points):
-                A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, wing_i.cp_dsl[i]))
                 linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
-                Cl_0_i = linear_data["cl0"]
+                Cl0_i = linear_data["cl0"]
                 Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
-                al_0_i = -Cl_0_i/Cl_alpha_i
+                Cl0_array[i_glob] = Cl0_i
+                Cl_alpha_array[i_glob] = Cl_alpha_i
+                alpha_zero_lift = -Cl0_i/Cl_alpha_i
 
-                B_matrix[i_glob] = Cl_alpha_i*(np.dot(v_inf_array, wing_i.u_n[i])-al_0_i)
+                A_matrix[i_glob][i_glob] = 2 * npla.norm(np.cross(v_inf_array, wing_i.cp_dsl[i]))
+                B_matrix[i_glob] = Cl_alpha_i * (np.dot(v_inf_array, wing_i.u_n[i]) - alpha_zero_lift)
 
                 j_glob = 0
                 for wing_j in wing_pool.complete_wing_pool:
                     v_ij_distr = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j]
-                        A_matrix[i_glob][j_glob] += -1*Cl_alpha_i*np.dot(v_ij, wing_i.u_n[i])
+                        A_matrix[i_glob][j_glob] += -1 * Cl_alpha_i * np.dot(v_ij, wing_i.u_n[i])
                         j_glob += 1
                 i_glob += 1
     G_solution = npla.solve(A_matrix, B_matrix)
@@ -50,7 +54,7 @@ def calculate_main_equation(
     """
     R_array = np.zeros(matrix_dim)
     i_glob = 0
-    Cl_list = [] # Used for debugging purposes
+    Cl_array = np.zeros(matrix_dim) # Used for debugging purposes
     for wing in wing_pool.complete_wing_pool:
         if "_mirrored" in wing.surface_name: continue
         N_panels = wing.N_panels
@@ -65,7 +69,7 @@ def calculate_main_equation(
                 wing.airfoil_data,
                 cl_alpha_check = False
             )
-            Cl_list.append(Cl_i)
+            Cl_array[i_glob] = Cl_i
             R_array[i_glob] = 2 * npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i])) * G_list[i] \
                 - Cl_i
             R_array[N_panels+i_glob] = R_array[i_glob]
@@ -89,7 +93,7 @@ def calculate_corrector_equation(
     """
     J_matrix = np.zeros([matrix_dim, matrix_dim])
     i_glob = 0
-    Cl_alpha_list = [] # Used for debugging purposes
+    Cl_alpha_array = np.zeros(matrix_dim) # Used for debugging purposes
     for wing_i in wing_pool.complete_wing_pool:
         G_distr = G_dict[wing_i.surface_name]
         total_velocity_distr = total_velocity_dict[wing_i.surface_name]
@@ -110,7 +114,7 @@ def calculate_corrector_equation(
                     wing_i.airfoil_data,
                     cl_alpha_check = True
                 ) * 180 / np.pi
-            Cl_alpha_list.append(Cl_alpha_i)
+            Cl_alpha_array[i_glob] = Cl_alpha_i
             for wing_j in wing_pool.complete_wing_pool:
                 if "_mirrored" in wing_j.surface_name: continue
                 v_ij_distr = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name]
