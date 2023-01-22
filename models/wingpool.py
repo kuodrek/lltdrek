@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import copy
 from utils.timeit import timeit
+from utils.lookup import get_airfoil_data
 
 
 """
@@ -31,27 +32,40 @@ aoa_eff_dict = {
 """
 
 
-@dataclass(repr=False, eq=False, match_args=False)
+@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class WingPool:
     wing_list: List[Wing]
     flight_condition: FlightCondition
     initial_G: Dict = None
-    ind_velocities_dict: Dict = field(init=False)
+    S_ref: float = None
+    c_ref: float = None
+    ind_velocities_list: List = field(init=False)
     G_dict: Dict = field(init=False)
     complete_wing_pool: List[Wing] = field(init=False)
+    total_panels: int = field(init=False)
 
     @timeit
     def __post_init__(self):
         self.G_dict = {}
         self.complete_wing_pool = []
         self.ind_velocities_list = []
-
+        self.total_panels = 0
+        
+        if self.c_ref is None:
+            self.c_ref = self.wing_list[0].MAC
+        
         if(len(set(self.wing_list)) == len(self.wing_list)):
             self.build_complete_wing_pool()
         else:
             raise Exception("As asas que compõem a wing pool precisam ter nomes únicos")
         
+        if self.S_ref is None:
+            self.S_ref = 0
+            for _, wing in enumerate(self.complete_wing_pool):
+                self.S_ref += wing.total_area
+
         for _, wing in enumerate(self.complete_wing_pool):
+            self.total_panels += wing.N_panels
             if self.initial_G == None:
                 self.G_dict[wing.surface_name] = [0.1 for _ in range(wing.N_panels)]
             else:
@@ -81,7 +95,9 @@ class WingPool:
             mirrored_wing.collocation_points[:,1] = -1 * mirrored_wing.collocation_points[:,1]
             mirrored_wing.vertice_points[:,1] = -1 * mirrored_wing.vertice_points[:,1]
             mirrored_wing.cp_lengths[:,1] = -1 * mirrored_wing.cp_lengths[:,1]
-            mirrored_wing.cp_dsl[:,1] = -1 * mirrored_wing.cp_dsl[:,1]
+            mirrored_wing.cp_dsl[:,0] = -1 * mirrored_wing.cp_dsl[:,0]
+            mirrored_wing.cp_dsl[:,2] = -1 * mirrored_wing.cp_dsl[:,2]
+            
             mirrored_wing.parent_wing = wing.surface_name
 
             self.complete_wing_pool.append(wing)
@@ -94,16 +110,17 @@ class WingPool:
         the main equations, into separate solution lists for each wing in the
         complete_wing_pool
         """
+        G_dict = {}
         global_counter = 0
         for wing in self.complete_wing_pool:
             counter = 0
-            G_list = []
+            G_array = np.zeros(wing.N_panels)
             while counter < wing.N_panels:
-                G_list.append(G_solution[global_counter])
+                G_array[counter] = G_solution[global_counter]
                 counter += 1
                 global_counter += 1
-            self.G_dict[wing.surface_name] = G_list
-        return self.G_dict
+            G_dict[wing.surface_name] = G_array
+        return G_dict
     
     @timeit
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
@@ -118,28 +135,22 @@ class WingPool:
             for wing_vp in self.complete_wing_pool:
                 vertice_points = wing_vp.vertice_points
                 v_ij_distr = velocity.get_induced_velocity_distribution(
-                    collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name
+                    collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name, self.flight_condition.ground_effect_check, self.flight_condition.h
                 )
                 ind_velocities_dict[wing_cp.surface_name][wing_vp.surface_name] = v_ij_distr
         return ind_velocities_dict
 
 
-    def calculate_total_velocity(self, v_inf_array: np.ndarray, G_dict: dict):
+    def calculate_total_velocity(self, aoa_idx: int, G_dict: dict):
         """
         WIP
         Method that calculates the sum of vij * G  + v_inf of all wings
         - Dá pra acelerar esse método calculando somente a velocidade dos objetos originais e copiando para os objetos 
         espelhados
         """
-        aoa_index = np.nan
-        for idx, array in enumerate(self.flight_condition.v_inf_list):
-            if np.array_equal(v_inf_array, array):
-                aoa_index = idx
-                break
-        if aoa_index == np.nan:
-            raise ValueError("v_inf_array inválido: o valor não se encontra na lista self.v_inf_list")
+        v_inf_array = self.flight_condition.v_inf_list[aoa_idx]
         
-        ind_velocities_dict = self.ind_velocities_list[aoa_index]
+        ind_velocities_dict = self.ind_velocities_list[aoa_idx]
         total_velocity_dict = {}
         for wing in self.complete_wing_pool:
             total_velocity_dict[wing.surface_name] = np.zeros((wing.N_panels,3))
@@ -169,3 +180,25 @@ class WingPool:
             aoa_eff_dict[wing.surface_name] = aoa_eff_distr
             aoa_eff_dict[wing.surface_name+"_mirrored"] = aoa_eff_distr
         return aoa_eff_dict
+
+    
+    def get_Cl_distribution(self, aoa_eff_dict: dict, cl_alpha_check: bool) -> dict:
+        """
+        O método pode retornar tanto a distribuição de Cl quanto a distribuição de Clalpha
+        do sistema de asas
+        Não é utilizado atualmente
+        """
+        Cl_dict = {}
+        for wing in self.wing_list:
+            Cl_distr = np.zeros(wing.N_panels)
+            aoa_eff_distr = aoa_eff_dict[wing.surface_name]
+            for i, _ in enumerate(wing.collocation_points):
+                Cl_distr[i] = get_airfoil_data(
+                    wing.cp_airfoils[i],
+                    wing.cp_reynolds[i],
+                    aoa_eff_distr[i] * 180 / np.pi,
+                    wing.airfoil_data,
+                    cl_alpha_check = cl_alpha_check
+                )
+            Cl_dict[wing.surface_name] = Cl_distr
+        return Cl_dict

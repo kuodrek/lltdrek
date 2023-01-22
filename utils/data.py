@@ -1,12 +1,16 @@
 import os
 import numpy as np
+from typing import Union
 
 
 AOA_POLYFIT_MIN = 0
 AOA_POLYFIT_MAX = 8
 
 
-def load_folder(folder_name: str):
+def load_folder(folder_name: str, aoa_polyfit_min: Union[float, int] = None, aoa_polyfit_max: Union[float, int] = None):
+    if aoa_polyfit_min is None or aoa_polyfit_max is None:
+        aoa_polyfit_min = AOA_POLYFIT_MIN
+        aoa_polyfit_max = AOA_POLYFIT_MAX
     # Get full directory to lookup files
     current_dir = os.path.abspath(os.getcwd())
     target_dir = os.path.join(current_dir, folder_name)
@@ -27,7 +31,7 @@ def load_folder(folder_name: str):
     airfoils_data_dict = {}
     for file in txt_list:
         airfoil_name = file.split("/")[-1].split(".")[0]
-        airfoil_data = cl_file_to_dict(file)
+        airfoil_data = cl_file_to_dict(file, aoa_polyfit_min, aoa_polyfit_max)
         airfoils_data_dict[airfoil_name] = airfoil_data
 
     airfoils_dat_dict = {}
@@ -40,7 +44,7 @@ def load_folder(folder_name: str):
 
 
 
-def cl_file_to_dict(file_path: str):
+def cl_file_to_dict(file_path: str, aoa_polyfit_min, aoa_polyfit_max):
     airfoil_data_dict = {}
     with open(file_path, "r") as f:
         while True:
@@ -56,13 +60,15 @@ def cl_file_to_dict(file_path: str):
                 else:
                     cl_line = cl_line.rstrip().split(",")
                     cl_list_temp.append([float(value) for value in cl_line])
-            cl_linear_coefs = get_linear_coefs(cl_list_temp)
+            cl_linear_coefs = get_linear_coefs(cl_list_temp, aoa_polyfit_min, aoa_polyfit_max)
             cl_list = np.array(cl_list_temp)
+            clmax = cl_list[:,1].max()
             airfoil_data_dict[reynolds] = {
                 "cl_list": cl_list,
                 "cl_alpha": cl_linear_coefs["cl_alpha"],
                 "cl0": cl_linear_coefs["cl0"],
-                "cm0": cm0
+                "cm0": cm0,
+                "clmax": clmax
                 }
     return airfoil_data_dict
 
@@ -75,11 +81,11 @@ def dat_file_to_dict(file_path: str):
     return dat_list
 
 
-def get_linear_coefs(cl_list: list):
+def get_linear_coefs(cl_list: list, aoa_polyfit_min, aoa_polyfit_max):
     aoa_interp_list = []
     cl_interp_list = []
     for values in cl_list:
-        if AOA_POLYFIT_MIN <= values[0] <= AOA_POLYFIT_MAX:
+        if aoa_polyfit_min <= values[0] <= aoa_polyfit_max:
             aoa_interp_list.append(values[0])
             cl_interp_list.append(values[1])
     linear_coefs = np.polyfit(aoa_interp_list, cl_interp_list,1)

@@ -3,7 +3,7 @@ import numpy as np
 from dataclasses import dataclass, field
 
 
-@dataclass(repr=False, eq=False, match_args=False)
+@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class FlightCondition:
     V_inf: float
     nu: float
