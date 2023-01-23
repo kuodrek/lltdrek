@@ -1,8 +1,8 @@
 import numpy as np
 import numpy.linalg as npla
-from models.wingpool import WingPool
-from utils.lookup import get_airfoil_data, get_linear_data_and_clmax
-from utils.timeit import timeit
+from lltdrek.models.wingpool import WingPool
+from lltdrek.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
+from lltdrek.utils.timeit import timeit
 
 
 def calculate_main_equation_simplified(
