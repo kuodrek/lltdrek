@@ -5,3 +5,4 @@ airfoils/
 testes*
 .env
 todo.md
+.egg
