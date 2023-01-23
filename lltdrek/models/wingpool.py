@@ -44,7 +44,7 @@ class WingPool:
     complete_wing_pool: List[Wing] = field(init=False)
     total_panels: int = field(init=False)
 
-    @timeit
+    # @timeit
     def __post_init__(self):
         self.G_dict = {}
         self.complete_wing_pool = []
@@ -122,7 +122,7 @@ class WingPool:
             G_dict[wing.surface_name] = G_array
         return G_dict
     
-    @timeit
+    # @timeit
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
         # Essa função calcula tudo para um angulo de ataque e é chamada para cada aoa no __post_init__
         ind_velocities_dict = {}
