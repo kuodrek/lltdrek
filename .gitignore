@@ -4,3 +4,7 @@ venv/
 airfoils/
 testes*
 .env
+todo.md
+*.egg-info
+*.ini
+dist
