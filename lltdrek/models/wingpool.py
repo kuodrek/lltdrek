@@ -1,12 +1,12 @@
 from typing import Dict, List
-from models.wing import Wing
-from models.flight_condition import FlightCondition
-from utils import velocity
 from dataclasses import dataclass, field
 import numpy as np
 import copy
-from utils.timeit import timeit
-from utils.lookup import get_airfoil_data
+from lltdrek.models.wing import Wing
+from lltdrek.models.flight_condition import FlightCondition
+from lltdrek.utils import velocity
+from lltdrek.utils.timeit import timeit
+from lltdrek.utils.lookup import get_airfoil_data
 
 
 """
