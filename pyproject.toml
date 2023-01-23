@@ -1,6 +1,22 @@
 [build-system]
-requires = [
-    "setuptools>=61.0",
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lltdrek"
+version = "0.0.2"
+authors = [
+  { name="Luis Kuodrek", email="kuodrek@gmail.com" },
+]
+description = "Package description"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
     "cycler==0.11.0",
     "fonttools==4.38.0",
     "kiwisolver==1.4.4",
@@ -12,22 +28,6 @@ requires = [
     "python-dateutil==2.8.2",
     "scipy==1.9.3",
     "six==1.16.0",
-]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "lltdrek"
-version = "0.0.1"
-authors = [
-  { name="Luis Kuodrek", email="kuodrek@gmail.com" },
-]
-description = "Package description"
-readme = "README.md"
-requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
 ]
 
 [project.urls]
