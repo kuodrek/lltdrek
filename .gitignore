@@ -2,9 +2,9 @@ __pycache__
 venv/
 .vscode/
 airfoils/
-.github/
 testes*
 .env
 todo.md
 *.egg-info
+*.ini
 dist
