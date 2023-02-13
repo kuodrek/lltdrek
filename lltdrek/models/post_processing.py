@@ -101,8 +101,83 @@ class PostProcessing:
         return self.ref_points_dict
 
 
-    def get_wing_coefficients(self):
-        pass
+    def get_wing_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int, S_ref: float, c_ref: float) -> dict:
+        if self.ref_points_dict is None:
+            self.build_reference_points_dict(wing_pool)
+        
+        wing_coefficients = {}
+
+        if type(G_dict) != dict:
+            CF = np.array((np.nan, np.nan, np.nan))
+            CM = np.array((np.nan, np.nan, np.nan))
+            Cl_distr_dict = {}
+            for wing in wing_pool.complete_wing_pool:
+                Cl_distr_dict[wing.surface_name] = np.nan
+                wing_coefficients[wing.surface_name] = {
+                    "CF": CF,
+                    "CM": CM,
+                    "Cl_distr": Cl_distr_dict
+                }
+            return wing_coefficients
+        
+        v_inf = wing_pool.flight_condition.v_inf_list[aoa_index]
+        aoa = wing_pool.flight_condition.aoa[aoa_index]
+        aoa_rad = aoa * np.pi / 180
+
+        CF_distr = np.zeros((wing_pool.total_panels, 3))
+        CM_distr = np.zeros((wing_pool.total_panels, 3))
+        i_glob = 0
+        Cl_distr_dict = {}
+        for wing_i in wing_pool.complete_wing_pool:
+            CF = np.zeros(3)
+            CM = np.zeros(3)
+            
+            ref_points_distr = self.ref_points_dict[wing_i.surface_name]
+            Cl_distr = np.zeros(wing_i.N_panels)
+            G_i = G_dict[wing_i.surface_name]
+            for i, _ in enumerate(wing_i.collocation_points):
+                aux_cf = np.zeros(3)
+
+                airfoil_coefficients = get_linear_data_and_clmax(
+                    wing_i.cp_airfoils[i],
+                    wing_i.cp_reynolds[i],
+                    wing_i.airfoil_data
+                )
+                cm_i = airfoil_coefficients["cm0"]
+                Cl_distr[i] = 2 * G_i[i]
+                for wing_j in wing_pool.complete_wing_pool:
+                    G_j = G_dict[wing_j.surface_name]
+                    v_ij_distr = wing_pool.ind_velocities_list[aoa_index][wing_i.surface_name][wing_j.surface_name]
+                    for j, _ in enumerate(wing_j.collocation_points):
+                        v_ij = v_ij_distr[i][j]
+                        aux_cf += G_j[j] * v_ij
+                aux_cf = (aux_cf + v_inf) * G_i[i]
+                CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
+                CF_distr[i_glob,:] = 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
+                CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+                CM_distr[i_glob,:] = (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+                i_glob += 1
+
+            rotation_matrix = np.array(
+                [[np.cos(aoa_rad), 0, np.sin(aoa_rad)],
+                [0, 1, 0],
+                [-1*np.sin(aoa_rad), 0, np.cos(aoa_rad)]]
+            )
+            CF = np.matmul(rotation_matrix, CF)
+            Cl_distr_dict[wing_i.surface_name] = Cl_distr
+            wing_coefficients[wing_i.surface_name] = {
+                "CF": CF,
+                "CM": CM,
+                "Cl_distr": Cl_distr_dict
+            }
+
+        for wing_i in wing_pool.wing_list:
+            # Somar as parcelas das asas (wing + wing_mirrored) e remover chaves de asas espelhadas
+            wing_coefficients[wing_i.surface_name]["CF"] += wing_coefficients[wing_i.surface_name+"_mirrored"]["CF"]
+            wing_coefficients[wing_i.surface_name]["CM"] += wing_coefficients[wing_i.surface_name+"_mirrored"]["CM"]
+            wing_coefficients.pop(wing_i.surface_name+"_mirrored")
+
+        return wing_coefficients
 
 
     def get_CL_max_linear(
@@ -206,4 +281,3 @@ class PostProcessing:
             "x_ac": x_ac,
             "Cm_ac": Cm_ac
         }
-
