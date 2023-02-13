@@ -33,7 +33,7 @@ class Simulation:
             raise ValueError(f"Valor de simulation_mode ({self.simulation_mode}) inválido. Valores aceitos: {self.simulation_modes}")
 
 
-    @timeit
+    # @timeit
     def run_simulation(self) -> list:
         """
         Método para rodar a simulação principal do lltdrek
