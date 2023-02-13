@@ -56,7 +56,9 @@ def calculate_main_equation(
     i_glob = 0
     Cl_array = np.zeros(matrix_dim) # Used for debugging purposes
     for wing in wing_pool.complete_wing_pool:
-        if "_mirrored" in wing.surface_name: continue
+        if "_mirrored" in wing.surface_name: 
+            i_glob += wing.N_panels
+            continue
         N_panels = wing.N_panels
         aoa_eff_distr = aoa_eff_dict[wing.surface_name]
         G_list = G_dict[wing.surface_name]
@@ -116,7 +118,9 @@ def calculate_corrector_equation(
                 ) * 180 / np.pi
             Cl_alpha_array[i_glob] = Cl_alpha_i
             for wing_j in wing_pool.complete_wing_pool:
-                if "_mirrored" in wing_j.surface_name: continue
+                if "_mirrored" in wing_j.surface_name: 
+                    j_glob += wing_j.N_panels
+                    continue
                 v_ij_distr = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name]
                 v_ij_distr_mirrored = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name+"_mirrored"]
                 for j, _ in enumerate(wing_j.collocation_points):
