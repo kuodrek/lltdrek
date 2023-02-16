@@ -68,60 +68,50 @@ class Simulation:
                 )
             aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
             
+            while True:
+                R_array = calculate_main_equation(
+                    total_velocity_dict,
+                    aoa_eff_dict,
+                    G_dict,
+                    self.wing_pool,
+                    self.matrix_dim,
+                    self.linear_check
+                )
+                delta_G = calculate_corrector_equation(
+                    R_array,
+                    total_velocity_dict,
+                    aoa_eff_dict,
+                    G_dict,
+                    idx,
+                    self.wing_pool,
+                    self.matrix_dim,
+                    self.linear_check
+                )
 
-            if self.linear_check:
-                G = calculate_main_equation_simplified(
-                    v_inf_array=self.wing_pool.flight_condition.v_inf_list[idx],
-                    aoa_idx=idx,
-                    wing_pool=self.wing_pool,
-                    matrix_dim=self.matrix_dim
-                    )
-                G_dict = self.wing_pool.update_solution(G)
-                print(f"Found solution for angle {aoa}") if self.show_logs is True else None
-                G_solution_list.append(G_dict)
-            else:
-                while True:
-                    R_array = calculate_main_equation(
-                        total_velocity_dict,
-                        aoa_eff_dict,
-                        G_dict,
-                        self.wing_pool,
-                        self.matrix_dim
-                    )
-                    delta_G = calculate_corrector_equation(
-                        R_array,
-                        total_velocity_dict,
-                        aoa_eff_dict,
-                        G_dict,
-                        idx,
-                        self.wing_pool,
-                        self.matrix_dim,
-                    )
-
-                    if iteration > self.max_iter:
-                        G_solution_list.append(np.nan)
-                        if "last_successful_solution" in locals():
-                            G_dict = last_successful_solution_dict
-                        else:
-                            G_dict = self.wing_pool.G_dict
-                        print(f"Reached max iterations for angle {aoa}") if self.show_logs is True else None
-                        break
-                    if abs(R_array.max()) < self.max_residual:
-                        G_solution_list.append(G_dict)
-                        print(f"Found solution for angle {aoa}") if self.show_logs is True else None
-                        print(f"number of iterations: {iteration}") if self.show_logs is True else None
-                        last_successful_solution_dict = G_dict
-                        break
+                if iteration > self.max_iter:
+                    G_solution_list.append(np.nan)
+                    if "last_successful_solution" in locals():
+                        G_dict = last_successful_solution_dict
                     else:
-                        G = G + delta_G * self.damping_factor                  
-                        G_dict = self.wing_pool.update_solution(G)
+                        G_dict = self.wing_pool.G_dict
+                    print(f"Reached max iterations for angle {aoa}") if self.show_logs is True else None
+                    break
+                if abs(R_array.max()) < self.max_residual:
+                    G_solution_list.append(G_dict)
+                    print(f"Found solution for angle {aoa}") if self.show_logs is True else None
+                    print(f"number of iterations: {iteration}") if self.show_logs is True else None
+                    last_successful_solution_dict = G_dict
+                    break
+                else:
+                    G = G + delta_G * self.damping_factor                  
+                    G_dict = self.wing_pool.update_solution(G)
 
-                        # Pré-calcular distribuição de alfas e velocidade total por painel
-                        total_velocity_dict = self.wing_pool.calculate_total_velocity(
-                            aoa_idx=idx,
-                            G_dict=G_dict
-                            )
-                        aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
-                        iteration += 1
+                    # Pré-calcular distribuição de alfas e velocidade total por painel
+                    total_velocity_dict = self.wing_pool.calculate_total_velocity(
+                        aoa_idx=idx,
+                        G_dict=G_dict
+                        )
+                    aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
+                    iteration += 1
 
         return G_solution_list

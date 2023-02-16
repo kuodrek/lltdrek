@@ -2,6 +2,7 @@ __pycache__
 venv/
 .vscode/
 airfoils/
+airfoils_test/
 testes*
 .env
 todo.md

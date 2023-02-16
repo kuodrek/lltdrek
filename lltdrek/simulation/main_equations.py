@@ -46,7 +46,8 @@ def calculate_main_equation(
     aoa_eff_dict: dict,
     G_dict: dict,
     wing_pool: WingPool,
-    matrix_dim: int
+    matrix_dim: int,
+    linear_check: bool
 ) -> np.ndarray:
     """
     Main system of equations -
@@ -64,13 +65,19 @@ def calculate_main_equation(
         G_list = G_dict[wing.surface_name]
         total_velocity_distr = total_velocity_dict[wing.surface_name]
         for i, _ in enumerate(wing.collocation_points):
-            Cl_i = get_airfoil_data(
-                wing.cp_airfoils[i],
-                wing.cp_reynolds[i],
-                aoa_eff_distr[i] * 180 / np.pi,
-                wing.airfoil_data,
-                cl_alpha_check = False
-            )
+            if linear_check:
+                linear_data = get_linear_data_and_clmax(wing.cp_airfoils[i], wing.cp_reynolds[i], wing.airfoil_data)
+                Cl0_i = linear_data["cl0"]
+                Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
+                Cl_i = Cl_alpha_i * aoa_eff_distr[i] + Cl0_i
+            else:
+                Cl_i = get_airfoil_data(
+                    wing.cp_airfoils[i],
+                    wing.cp_reynolds[i],
+                    aoa_eff_distr[i] * 180 / np.pi,
+                    wing.airfoil_data,
+                    cl_alpha_check = False
+                )
             Cl_array[i_glob] = Cl_i
             R_array[i_glob] = 2 * npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i])) * G_list[i] \
                 - Cl_i
@@ -88,6 +95,7 @@ def calculate_corrector_equation(
     aoa_idx: int,
     wing_pool: WingPool,
     matrix_dim: int,
+    linear_check: bool
 ) -> np.ndarray:
     """
     Newton corrector system of equations
@@ -109,13 +117,18 @@ def calculate_corrector_equation(
             u_a_i = wing_i.u_a[i]
             v_n_i = np.dot(total_velocity_distr[i], wing_i.u_n[i])
             v_a_i = np.dot(total_velocity_distr[i], wing_i.u_a[i])
-            Cl_alpha_i = get_airfoil_data(
-                    wing_i.cp_airfoils[i],
-                    wing_i.cp_reynolds[i],
-                    aoa_eff_distr[i] * 180 / np.pi,
-                    wing_i.airfoil_data,
-                    cl_alpha_check = True
-                ) * 180 / np.pi
+
+            if linear_check:
+                linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
+                Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
+            else:
+                Cl_alpha_i = get_airfoil_data(
+                        wing_i.cp_airfoils[i],
+                        wing_i.cp_reynolds[i],
+                        aoa_eff_distr[i] * 180 / np.pi,
+                        wing_i.airfoil_data,
+                        cl_alpha_check = True
+                    ) * 180 / np.pi
             Cl_alpha_array[i_glob] = Cl_alpha_i
             for wing_j in wing_pool.complete_wing_pool:
                 if "_mirrored" in wing_j.surface_name: 
