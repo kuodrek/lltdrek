@@ -63,11 +63,9 @@ class Wing:
     def generate_mesh(self) -> None:
         self.total_span = sum(self.spans)
         # Number of panels of each partition
-        self.span_panel_numbers = [value / self.total_span * self.N_panels for value in self.spans]
-        self.span_panel_numbers = [math.ceil(int(i)) for i in self.span_panel_numbers]
-        # Add a panel to compensate rounding
-        if sum(self.span_panel_numbers) == self.N_panels - 1:
-            self.span_panel_numbers[-1] += 1
+        self.span_panel_numbers = [math.ceil(value / self.total_span * self.N_panels) for value in self.spans]
+        # A quantidade de paineis da última partição é definida como N_panels - (paineis de todas as outras partições)
+        self.span_panel_numbers[-1] = self.N_panels - sum(self.span_panel_numbers) + self.span_panel_numbers[-1]
 
         self.partition_areas = np.zeros(len(self.spans))
         
