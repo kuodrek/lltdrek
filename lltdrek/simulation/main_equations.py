@@ -64,6 +64,7 @@ def calculate_main_equation(
         aoa_eff_distr = aoa_eff_dict[wing.surface_name]
         G_list = G_dict[wing.surface_name]
         total_velocity_distr = total_velocity_dict[wing.surface_name]
+        # print(f"main, asa: {wing.surface_name}")
         for i, _ in enumerate(wing.collocation_points):
             if linear_check:
                 linear_data = get_linear_data_and_clmax(wing.cp_airfoils[i], wing.cp_reynolds[i], wing.airfoil_data)
@@ -83,6 +84,7 @@ def calculate_main_equation(
                 - Cl_i
             R_array[N_panels+i_glob] = R_array[i_glob]
             i_glob += 1
+        # print(f"Cl_array: {Cl_array}")
     return R_array
 
 
@@ -105,6 +107,7 @@ def calculate_corrector_equation(
     i_glob = 0
     Cl_alpha_array = np.zeros(matrix_dim) # Used for debugging purposes
     for wing_i in wing_pool.complete_wing_pool:
+        # print(f"corrector, asa: {wing_i.surface_name}")
         G_distr = G_dict[wing_i.surface_name]
         total_velocity_distr = total_velocity_dict[wing_i.surface_name]
         aoa_eff_distr = aoa_eff_dict[wing_i.surface_name]
@@ -156,6 +159,7 @@ def calculate_corrector_equation(
                     J_matrix[i_glob][N_panels+j_glob] = coef_ij_m
                     j_glob += 1
             i_glob += 1
+        # print(f"Cl_alpha_array: {Cl_alpha_array}")
 
     delta_G = npla.solve(J_matrix, -R_array)
     return delta_G
