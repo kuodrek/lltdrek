@@ -58,9 +58,7 @@ class Simulation:
                     wing_pool=self.wing_pool,
                     matrix_dim=self.matrix_dim
                     )
-                G_linear_solution = G # debugging purposes
                 G_dict = self.wing_pool.update_solution(G_solution=G)
-                a=1
 
             total_velocity_dict = self.wing_pool.calculate_total_velocity(
                 aoa_idx=idx,
@@ -87,9 +85,10 @@ class Simulation:
                     self.matrix_dim,
                     self.linear_check
                 )
-
                 if iteration > self.max_iter:
-                    G_solution_list.append(np.nan)
+                    G_solution = np.ones(self.matrix_dim) * np.nan
+                    G_dict = self.wing_pool.update_solution(G_solution=G_solution)
+                    G_solution_list.append(G_dict)
                     if "last_successful_solution" in locals():
                         G_dict = last_successful_solution_dict
                     else:
@@ -112,6 +111,7 @@ class Simulation:
                         G_dict=G_dict
                         )
                     aoa_eff_dict = self.wing_pool.calculate_aoa_eff(total_velocity_dict)
+                    # print(f"aoa_eff_dict: {aoa_eff_dict['asa'] * 180 / np.pi}")
                     iteration += 1
 
         return G_solution_list
