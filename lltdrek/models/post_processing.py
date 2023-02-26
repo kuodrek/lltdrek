@@ -16,11 +16,21 @@ class PostProcessing:
     def __post_init__(self) -> None:
         self.ref_points_dict = None
 
+
+    def check_for_nan(self, G_dict) -> bool:
+        convergence_check = True
+        for surface, G_distribution in G_dict.items():
+            if True in np.isnan(G_distribution): convergence_check = False
+
+        return convergence_check
+
+
     def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int, S_ref: float, c_ref: float) -> dict:
         if self.ref_points_dict is None:
             self.build_reference_points_dict(wing_pool)
         
-        if type(G_dict) != dict:
+        convergence_check = self.check_for_nan(G_dict)
+        if not convergence_check:
             CF = np.array((np.nan, np.nan, np.nan))
             CM = np.array((np.nan, np.nan, np.nan))
             Cl_distr_dict = {}
@@ -107,7 +117,8 @@ class PostProcessing:
         
         wing_coefficients = {}
 
-        if type(G_dict) != dict:
+        convergence_check = self.check_for_nan(G_dict)
+        if not convergence_check:
             CF = np.array((np.nan, np.nan, np.nan))
             CM = np.array((np.nan, np.nan, np.nan))
             Cl_distr_dict = {}
@@ -184,8 +195,8 @@ class PostProcessing:
         self,
         wing_pool: WingPool,
         G_list: list[dict],
-        aoa_range: Union[tuple[float],None],
         S_ref: float,
+        aoa_range: Union[tuple[float], None] = None,
     ) -> float:
         """
         Obtenção do CL máximo de uma asa (ou sistema de asas) através do método da seção crítica
@@ -195,6 +206,8 @@ class PostProcessing:
         por exemplo, se aoa_list [1, 3, 5, 7, 9, 11, 13, 15, 19]
         passando-se aoa_range = [13, 19] será iterado somente entre os ângulos 13 e 19
         """
+        c_ref = 1 # O valor de c_ref pode ser qualquer um aqui porque nao vamos pegar coeficiente de momento
+
         if aoa_range == None:
             aoa_start = wing_pool.flight_condition.aoa[0]
             aoa_end = wing_pool.flight_condition.aoa[-1]
@@ -202,12 +215,14 @@ class PostProcessing:
             aoa_start = aoa_range[0]
             aoa_end = aoa_range[-1]
 
-        CLmax_check = False
-        for aoa_idx, aoa in enumerate(wing_pool.flight_condition.aoa):
-            if aoa_start <= aoa <= aoa_end and not CLmax_check:
-                G_dict = G_list[aoa_idx]
-                if type(G_dict) != dict: continue # Pula a iteração caso G_dict = nan (não convergiu)
-                for wing_i in wing_pool.wing_list:
+        CLmax_dict = {}
+        for wing_i in wing_pool.wing_list:
+            CLmax_check = False
+            for aoa_idx, aoa in enumerate(wing_pool.flight_condition.aoa):
+                if aoa_start <= aoa <= aoa_end and not CLmax_check:
+                    G_dict = G_list[aoa_idx]
+                    convergence_check = self.check_for_nan(G_dict)
+                    if not convergence_check: continue
                     G_i = G_dict[wing_i.surface_name]
                     for i, _ in enumerate(wing_i.collocation_points):
                         lookup_data = get_linear_data_and_clmax(
@@ -219,17 +234,18 @@ class PostProcessing:
                         if 2 * G_i[i] > Clmax_i:
                             CLmax_check = True
                             aoa_max_idx = aoa_idx - 1 if aoa_idx > 0 else 0
-        if not CLmax_check:
-            aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.aoa.index(aoa_range[-1])
-        G_dict = G_list[aoa_max_idx]
-        aoa_max = wing_pool.flight_condition.aoa[aoa_max_idx]
-        c_ref = 1 # O valor de c_ref pode ser qualquer um aqui porque nao vamos pegar coeficiente de momento
-        coefficients = self.get_global_coefficients(wing_pool, G_dict, aoa_max_idx, S_ref, c_ref)
-        return {
-            "CLmax": coefficients["CF"][2],
-            "aoa_max": aoa_max,
-            "aoa_max_idx": aoa_max_idx
-        }
+            if not CLmax_check:
+                aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.aoa.index(aoa_range[-1])
+            G_dict = G_list[aoa_max_idx]
+            aoa_max = wing_pool.flight_condition.aoa[aoa_max_idx]
+            coefficients = self.get_wing_coefficients(wing_pool, G_dict, aoa_max_idx, S_ref, c_ref)
+            CLmax_dict[wing_i.surface_name] = {
+                "CLmax": coefficients[wing_i.surface_name]["CF"][2],
+                "aoa_max": aoa_max,
+                "aoa_max_idx": aoa_max_idx
+            }
+
+        return CLmax_dict
 
 
     def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref: float, c_ref: float) -> dict:
