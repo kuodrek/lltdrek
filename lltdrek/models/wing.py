@@ -3,10 +3,16 @@ import math
 from typing import List, Union, Optional
 from dataclasses import dataclass, field
 from lltdrek.models.flight_condition import FlightCondition
+from lltdrek.models.enums import DistributionTypes
 import lltdrek.utils.geometry as geo
 
 
-@dataclass(repr=False, eq=False, match_args=False, slots=True)
+@dataclass(
+    repr=False,
+    eq=False,
+    match_args=False,
+    slots=True
+)
 class Wing:
     spans: List[float]
     chords: List[float]
@@ -18,7 +24,7 @@ class Wing:
     N_panels: Union[int, List[int]]
     x_pos: float = 0
     z_pos: float = 0
-    distribution_type: str = 'linear'
+    distribution_type: DistributionTypes = DistributionTypes.Linear
     sweep_check: bool = False
     # Properties obtained through get_mesh method
     total_span: float = field(init=False)
@@ -42,18 +48,14 @@ class Wing:
     AR: float = field(init=False)
     parent_wing: Optional[str] = field(init=False)
 
-    allowed_distribution_types = [
-        "linear",
-        "cosine"
-    ]
 
     def __post_init__(self) -> None:
-        if self.distribution_type not in self.allowed_distribution_types:
-            raise ValueError("Invalid 'distribution_type' value.")
+        if self.distribution_type not in set(item for item in DistributionTypes):
+            raise ValueError(f"Invalid distribution type. Allowed values: {print(DistributionTypes)}")
         # Convert degree to rad
         self.twist_angles = [angle * np.pi / 180 for angle in self.twist_angles]
         self.dihedral_angles = [angle * np.pi / 180 for angle in self.dihedral_angles]
-        self.parent_wing = None # Usado para asas espelhadas
+        self.parent_wing = None # Used for mirrored wings
     
 
     def __repr__(self) -> None:

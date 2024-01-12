@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import Enum
 import numpy as np
 from lltdrek.models.wingpool import WingPool
 from lltdrek.utils.timeit import timeit
@@ -8,32 +9,26 @@ from lltdrek.simulation.main_equations import (
     calculate_main_equation_simplified
 )
 
+class SimulationModes(Enum):
+    LinearFirst = "linear_first"
+    LatestSolution = "latest_solution"
 
 @dataclass(repr=False, eq=False, match_args=False, slots=True)
 class Simulation:
-
-    simulation_modes = [
-        "linear_first",
-        "latest_solution"
-    ]
-
     wing_pool: WingPool
     damping_factor: float = 0.7
     max_iter: int = 150
     max_residual: float = 1e-3
     linear_check: bool = False
     show_logs: bool = True
-    simulation_mode: str = "latest_solution"
+    simulation_mode: SimulationModes = SimulationModes.LatestSolution
     matrix_dim: int = field(init=False)
-
 
     def __post_init__(self):
         self.matrix_dim = sum([wing.N_panels for wing in self.wing_pool.complete_wing_pool])
-        if self.simulation_mode not in self.simulation_modes:
-            raise ValueError(f"Valor de simulation_mode ({self.simulation_mode}) inválido. Valores aceitos: {self.simulation_modes}")
+        # if self.simulation_mode not in set(item for item in SimulationModes):
+        #     raise ValueError(f"Invalid simulation_mode: {self.simulation_mode}. Accepted Values: {print(SimulationModes)}")
 
-
-    # @timeit
     def run_simulation(self) -> list:
         """
         Método para rodar a simulação principal do lltdrek
