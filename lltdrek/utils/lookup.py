@@ -70,7 +70,13 @@ def get_linear_data_and_clmax(
     return lookup_data
 
 
-def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_alpha_check: bool, linear_check: bool) -> float:
+def cl_lookup(
+    airfoil_data_dict: dict,
+    reynolds_number: float,
+    aoa: float,
+    cl_alpha_check: bool,
+    linear_check: bool
+) -> float:
     """
     - Função que realiza o lookup do numero de reynolds para, então, realizar o lookup de 
     aoa

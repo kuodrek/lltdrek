@@ -1,16 +1,13 @@
 import os
 import numpy as np
-from typing import Union
+from typing import Union, Tuple
 
 
-AOA_POLYFIT_MIN = 0
-AOA_POLYFIT_MAX = 8
-
-
-def load_folder(folder_name: str, aoa_polyfit_min: Union[float, int] = None, aoa_polyfit_max: Union[float, int] = None):
-    if aoa_polyfit_min is None or aoa_polyfit_max is None:
-        aoa_polyfit_min = AOA_POLYFIT_MIN
-        aoa_polyfit_max = AOA_POLYFIT_MAX
+def load_folder(
+    folder_name: str,
+    aoa_polyfit_min: Union[float, int] = 0,
+    aoa_polyfit_max: Union[float, int] = 8
+) -> Tuple[dict, dict]:
     # Get full directory to lookup files
     current_dir = os.path.abspath(os.getcwd())
     target_dir = os.path.join(current_dir, folder_name)
@@ -37,14 +34,13 @@ def load_folder(folder_name: str, aoa_polyfit_min: Union[float, int] = None, aoa
     airfoils_dat_dict = {}
     for file in dat_list:
         airfoil_name = file.split("/")[-1].split(".")[0]
-        dat_list = dat_file_to_dict(file)
+        dat_list = load_dat_file(file)
         airfoils_dat_dict[airfoil_name] = dat_list
     
     return airfoils_data_dict, airfoils_dat_dict
 
 
-
-def cl_file_to_dict(file_path: str, aoa_polyfit_min, aoa_polyfit_max):
+def cl_file_to_dict(file_path: str, aoa_polyfit_min: int, aoa_polyfit_max: int) -> dict:
     airfoil_data_dict = {}
     with open(file_path, "r") as f:
         while True:
@@ -73,7 +69,7 @@ def cl_file_to_dict(file_path: str, aoa_polyfit_min, aoa_polyfit_max):
     return airfoil_data_dict
 
 
-def dat_file_to_dict(file_path: str):
+def load_dat_file(file_path: str) -> list:
     dat_list = []
     dat_file = np.loadtxt(file_path,skiprows=1)
     for row in dat_file:
@@ -81,7 +77,7 @@ def dat_file_to_dict(file_path: str):
     return dat_list
 
 
-def get_linear_coefs(cl_list: list, aoa_polyfit_min, aoa_polyfit_max):
+def get_linear_coefs(cl_list: list, aoa_polyfit_min: int, aoa_polyfit_max: int) -> dict:
     aoa_interp_list = []
     cl_interp_list = []
     for values in cl_list:
@@ -94,8 +90,3 @@ def get_linear_coefs(cl_list: list, aoa_polyfit_min, aoa_polyfit_max):
         "cl0": linear_coefs[1]
     }
     return cl_linear_coefs_dict
-        
-
-def xfoil_file_to_cl_file(file_path: str):
-    # TODO: implementar
-    pass

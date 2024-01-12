@@ -79,7 +79,8 @@ def get_induced_velocity(
     return velocity_ij, same_panel_check
 
 
-def get_induced_velocity_ground_effect(collocation_point: np.ndarray,
+def get_induced_velocity_ground_effect(
+    collocation_point: np.ndarray,
     vertice_point_1: np.ndarray,
     vertice_point_2: np.ndarray,
     mac: float,

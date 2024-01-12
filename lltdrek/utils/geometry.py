@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from lltdrek.models.enums import DistributionTypes
 
 
 def plot_points(collocation_points, vertice_points):
@@ -18,7 +19,7 @@ def plot_points(collocation_points, vertice_points):
     plt.show()
 
 
-def get_span_y_distr(n, span_partition, distribution_type):
+def get_span_y_distr(n: int, span_partition: int, distribution_type: DistributionTypes) -> dict:
     vertice_points = np.zeros(n + 1)
     collocation_points = np.zeros(n)
 
@@ -26,17 +27,18 @@ def get_span_y_distr(n, span_partition, distribution_type):
         (1 - np.cos(0))  # O primeiro ponto é 0
     for i in range(n):
         # Componente Y dos pontos
-        if distribution_type == 'cosine':
+        if distribution_type == DistributionTypes.Cosine:
             vertice_points[i+1] = span_partition * 1 / \
                 2 * (1 - np.cos(((i+1) * np.pi / n)))
             collocation_points[i] = span_partition * 1 / 2 * \
                 (1 - np.cos(((i+1) * np.pi / n) - (np.pi / (2 * n))))
-        elif distribution_type == 'linear':
+        elif distribution_type == DistributionTypes.Linear:
             vertice_points[i+1] = span_partition * ((i+1)/n)
             collocation_points[i] = span_partition * ((i)/n + (i+1)/n) * 1 / 2
         else:
             raise Exception(
-                "Invalid 'distribution_type' value. Expected 'cosine' or 'linear'.")
+                f"Invalid distribution type. Allowed values: {print(DistributionTypes)}"
+            )
 
     span_y_distribution = {
         'vertice_points': vertice_points,
