@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lltdrek"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name="Luis Kuodrek", email="kuodrek@gmail.com" },
 ]
@@ -16,19 +16,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "cycler==0.11.0",
-    "fonttools==4.38.0",
-    "kiwisolver==1.4.4",
-    "matplotlib==3.5.2",
-    "numpy==1.23.0",
-    "packaging==22.0",
-    "Pillow==9.3.0",
-    "pyparsing==3.0.9",
-    "python-dateutil==2.8.2",
-    "scipy==1.9.3",
-    "six==1.16.0",
-]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [project.urls]
 "Homepage" = "https://github.com/kuodrek/lltdrek"
