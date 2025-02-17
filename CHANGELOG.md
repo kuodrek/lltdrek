@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## 1.0.0
+
+### TODO
+
+- Transform post_processing methods into class methods
+- Create SimulationResults object
+- Create AirfoilDatabase object
+  - Maybe use a dataframe library
+- Create input data interface
+  - Add airfoil data by yaml files
+- move setup_airfoil_data method from Wing to WingPool
+- Wing.generate_mesh() should automatically be called upon creation
+
+
 ## 0.2.1
 
 ### Added
