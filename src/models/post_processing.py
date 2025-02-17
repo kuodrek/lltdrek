@@ -43,7 +43,7 @@ class PostProcessing:
             }
 
         v_inf = wing_pool.flight_condition.v_inf_list[aoa_index]
-        aoa = wing_pool.flight_condition.aoa[aoa_index]
+        aoa = wing_pool.flight_condition.angles_of_attack[aoa_index]
         aoa_rad = aoa * np.pi / 180
 
         CF = np.zeros(3)
@@ -132,7 +132,7 @@ class PostProcessing:
             return wing_coefficients
         
         v_inf = wing_pool.flight_condition.v_inf_list[aoa_index]
-        aoa = wing_pool.flight_condition.aoa[aoa_index]
+        aoa = wing_pool.flight_condition.angles_of_attack[aoa_index]
         aoa_rad = aoa * np.pi / 180
 
         CF_distr = np.zeros((wing_pool.total_panels, 3))
@@ -209,8 +209,8 @@ class PostProcessing:
         c_ref = 1 # O valor de c_ref pode ser qualquer um aqui porque nao vamos pegar coeficiente de momento
 
         if aoa_range == None:
-            aoa_start = wing_pool.flight_condition.aoa[0]
-            aoa_end = wing_pool.flight_condition.aoa[-1]
+            aoa_start = wing_pool.flight_condition.angles_of_attack[0]
+            aoa_end = wing_pool.flight_condition.angles_of_attack[-1]
         else:
             aoa_start = aoa_range[0]
             aoa_end = aoa_range[-1]
@@ -218,7 +218,7 @@ class PostProcessing:
         CLmax_dict = {}
         for wing_i in wing_pool.wing_list:
             CLmax_check = False
-            for aoa_idx, aoa in enumerate(wing_pool.flight_condition.aoa):
+            for aoa_idx, aoa in enumerate(wing_pool.flight_condition.angles_of_attack):
                 if aoa_start <= aoa <= aoa_end and not CLmax_check:
                     G_dict = G_list[aoa_idx]
                     convergence_check = self.check_for_nan(G_dict)
@@ -235,9 +235,9 @@ class PostProcessing:
                             CLmax_check = True
                             aoa_max_idx = aoa_idx - 1 if aoa_idx > 0 else 0
             if not CLmax_check:
-                aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.aoa.index(aoa_range[-1])
+                aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.angles_of_attack.index(aoa_range[-1])
             G_dict = G_list[aoa_max_idx]
-            aoa_max = wing_pool.flight_condition.aoa[aoa_max_idx]
+            aoa_max = wing_pool.flight_condition.angles_of_attack[aoa_max_idx]
             coefficients = self.get_wing_coefficients(wing_pool, G_dict, aoa_max_idx, S_ref, c_ref)
             CLmax_dict[wing_i.surface_name] = {
                 "CLmax": coefficients[wing_i.surface_name]["CF"][2],
@@ -249,7 +249,7 @@ class PostProcessing:
 
 
     def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref: float, c_ref: float) -> dict:
-        aoa_list = wing_pool.flight_condition.aoa
+        aoa_list = wing_pool.flight_condition.angles_of_attack
         if aoa_1 not in aoa_list or aoa_2 not in aoa_list:
             raise Exception(f"Ambos aoa_1 e aoa_2 precisam estar dentro da lista de ângulos de ataque")
 
