@@ -1,20 +1,28 @@
-from typing import List
+from typing import Union, Sequence
 import numpy as np
-from dataclasses import dataclass, field
 
-
-@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class FlightCondition:
-    V_inf: float
-    nu: float
-    rho: float
-    aoa: List[float]
-    h: float = 0
-    ground_effect_check: bool = False
-    v_inf_list: np.ndarray = field(init=False)
 
-    def __post_init__(self):
-        self.v_inf_list = np.zeros((len(self.aoa), 3))
-        for i, aoa_i in enumerate(self.aoa):
-            aoa_i = aoa_i * np.pi / 180
-            self.v_inf_list[i,:] = [np.cos(aoa_i), 0, np.sin(aoa_i)]
+    def __init__(
+        self,
+        V_inf: Union[float, int],
+        nu: Union[float, int],
+        rho: Union[float, int],
+        angles_of_attack: Sequence[Union[float, int]],
+        h: Union[float, int],
+        ground_effect_check: bool = False,
+    ):
+        self.V_inf = V_inf
+        self.nu = nu
+        self.rho = rho
+        self.angles_of_attack = angles_of_attack
+        self.h = h
+        self.ground_effect_check = ground_effect_check
+        self.v_inf_list = [
+            (
+                np.cos(alpha * np.pi / 180),
+                0,
+                np.sin(alpha * np.pi / 180),
+            )
+            for alpha in self.angles_of_attack
+        ]
