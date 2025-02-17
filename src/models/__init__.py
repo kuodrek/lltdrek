@@ -3,3 +3,5 @@ from .simulation import Simulation
 from .post_processing import PostProcessing
 from .wing import Wing
 from .wingpool import WingPool
+
+from .types import AOA
