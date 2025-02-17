@@ -1,10 +1,10 @@
 from typing import List, Union
 import numpy as np
 from dataclasses import dataclass, field
-from lltdrek.models.wingpool import WingPool
-from lltdrek.models.wing import Wing
-from lltdrek.models.flight_condition import FlightCondition
-from lltdrek.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
+from src.models.wingpool import WingPool
+from src.models.wing import Wing
+from src.models.flight_condition import FlightCondition
+from src.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
 
 
 @dataclass(repr=False, eq=False, match_args=False, slots=True)

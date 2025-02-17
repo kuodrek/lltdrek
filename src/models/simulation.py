@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 import numpy as np
-from lltdrek.models.wingpool import WingPool
-from lltdrek.utils.timeit import timeit
-from lltdrek.simulation.main_equations import (
+from src.models.wingpool import WingPool
+from src.utils.timeit import timeit
+from src.simulation.main_equations import (
     calculate_corrector_equation,
     calculate_main_equation,
     calculate_main_equation_simplified
