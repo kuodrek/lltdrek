@@ -1,34 +1,39 @@
-from typing import List, Union
+from typing import List, Union, Optional, Sequence
 import numpy as np
 from dataclasses import dataclass, field
+from src.models.simulation import SimulationResult
 from src.models.wingpool import WingPool
 from src.models.wing import Wing
 from src.models.flight_condition import FlightCondition
 from src.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
 
 
-@dataclass(repr=False, eq=False, match_args=False, slots=True)
+@dataclass
+class Coefficients:
+    ...
+
 class PostProcessing:
-    ref_point: list
-    ref_points_dict: dict = field(init=False)
+    @classmethod
+    def validate_result(cls, simulation_result: SimulationResult) -> bool:
+        ...
 
+    @classmethod
+    def build_reference_distribution(cls, wing_pool: WingPool, moment_ref: Sequence):
+        ...
 
-    def __post_init__(self) -> None:
-        self.ref_points_dict = None
+    @classmethod
+    def get_coefficients(
+        cls,
+        wing_pool: WingPool,
+        simulation_results: Union[SimulationResult, List[SimulationResult]],
+        moment_ref: Sequence,
+        S_ref: Optional[float],
+        c_ref: Optional[float]
+    ) -> dict:
+        moment_ref_distribution = cls.build_reference_points_dict()
+        for result in simulation_results:
+            ...
 
-
-    def check_for_nan(self, G_dict) -> bool:
-        convergence_check = True
-        for surface, G_distribution in G_dict.items():
-            if True in np.isnan(G_distribution): convergence_check = False
-
-        return convergence_check
-
-
-    def get_global_coefficients(self, wing_pool: WingPool, G_dict: dict[list], aoa_index: int, S_ref: float, c_ref: float) -> dict:
-        if self.ref_points_dict is None:
-            self.build_reference_points_dict(wing_pool)
-        
         convergence_check = self.check_for_nan(G_dict)
         if not convergence_check:
             CF = np.array((np.nan, np.nan, np.nan))
