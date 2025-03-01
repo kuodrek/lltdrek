@@ -33,16 +33,16 @@ aoa_eff_dict = {
 """
 
 class WingPool:
-    wing_list: List[Wing]
-    flight_condition: FlightCondition
-    initial_G: Dict = None
-    S_ref: float = None
-    c_ref: float = None
-    moment_ref: Sequence = [0, 0, 0]
-    ind_velocities_list: List = field(init=False)
-    G_dict: Dict = field(init=False)
-    complete_wing_pool: List[Wing] = field(init=False)
-    total_panels: int = field(init=False)
+    # wing_list: List[Wing]
+    # flight_condition: FlightCondition
+    # initial_G: Dict = None
+    # S_ref: float = None
+    # c_ref: float = None
+    # moment_ref: Sequence = [0, 0, 0]
+    # ind_velocities_list: List = field(init=False)
+    # G_dict: Dict = field(init=False)
+    # complete_wing_pool: List[Wing] = field(init=False)
+    # total_panels: int = field(init=False)
 
     def __init__(
         self,
@@ -115,7 +115,7 @@ class WingPool:
             complete_wing_pool.append(mirrored_wing)
         return complete_wing_pool
 
-    def update_solution(self, G_solution) -> None:
+    def solution_array_to_dict(self, G_solution) -> None:
         """
         Method that splits the G_solution list, obtained by solving the 
         the main equations, into separate solution lists for each wing in the

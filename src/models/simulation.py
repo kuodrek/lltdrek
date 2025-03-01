@@ -89,7 +89,7 @@ class Simulation:
                     wing_pool=wing_pool,
                     matrix_dim=matrix_dim
                     )
-                G_dict = wing_pool.update_solution(G_solution=G)
+                G_dict = wing_pool.solution_array_to_dict(G_solution=G)
 
             total_velocity_dict = wing_pool.calculate_total_velocity(
                 aoa_idx=idx,
@@ -118,7 +118,7 @@ class Simulation:
                 )
                 if iteration > self.max_iter:
                     G_solution = np.ones(matrix_dim) * np.nan
-                    G_dict = wing_pool.update_solution(G_solution=G_solution)
+                    G_dict = wing_pool.solution_array_to_dict(G_solution=G_solution)
                     G_solution_list.append(SimulationResult(
                         aoa,
                         G_dict,
@@ -142,7 +142,7 @@ class Simulation:
                     break
                 else:
                     G = G + delta_G * self.damping_factor                  
-                    G_dict = wing_pool.update_solution(G)
+                    G_dict = wing_pool.solution_array_to_dict(G)
 
                     # Pre calculate alpha distribution and total velocity for each panel
                     total_velocity_dict = wing_pool.calculate_total_velocity(
