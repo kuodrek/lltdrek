@@ -1,0 +1,3 @@
+# Wing Pool exceptions
+
+class NonUniqueWingsException(Exception): ...
