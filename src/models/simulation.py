@@ -8,7 +8,7 @@ from src.simulation.main_equations import (
     calculate_main_equation_simplified
 )
 from src.utils.timeit import timeit
-from src.models import AOA
+from src.models.types import AOA
 
 class SimulationModes(Enum):
     """Ways of running a simulation
@@ -24,11 +24,21 @@ class SimulationModes(Enum):
     LINEAR_FIRST = "linear_first"
     LATEST_SOLUTION = "latest_solution"
 
-@dataclass
+
+@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class SimulationResult:
+    """
+    :param alpha: Angle of attack of simulation
+    :type alpha: AOA
+    :param G_solution: Dictionary of panel's dimensionless vortex strength.
+    Each key is a surface from related `WingPool`
+    :param residual: Residual array of simulation
+    :param convergence_check: True if simulation converged
+    """
     alpha: AOA
     G_solution: dict[str, float]
     residual: np.ndarray
+    convergence_check: bool
 
 
 @dataclass(repr=False, eq=False, match_args=False, slots=True)
@@ -42,7 +52,7 @@ class Simulation:
     max_residual: float = 1e-3
     linear_check: bool = False
     show_logs: bool = True
-    simulation_mode: str = "latest_solution"
+    simulation_mode: str = SimulationModes.LATEST_SOLUTION.value
 
     def __post_init__(self):
         if self.simulation_mode not in self.simulation_modes:
@@ -53,7 +63,7 @@ class Simulation:
         return sum([wing.N_panels for wing in wing_pool.complete_wing_pool])
 
     # @timeit
-    def run(self, wing_pool: WingPool) -> list:
+    def run(self, wing_pool: WingPool) -> list[SimulationResult]:
         """
         Método para rodar a simulação principal do lltdrek
         A simulação usa o método da convergencia acelerada como default,
@@ -109,7 +119,11 @@ class Simulation:
                 if iteration > self.max_iter:
                     G_solution = np.ones(matrix_dim) * np.nan
                     G_dict = wing_pool.update_solution(G_solution=G_solution)
-                    G_solution_list.append(G_dict)
+                    G_solution_list.append(SimulationResult(
+                        aoa,
+                        G_dict,
+                        R_array
+                    ))
                     if "last_successful_solution" in locals():
                         G_dict = last_successful_solution_dict
                     else:
@@ -117,7 +131,11 @@ class Simulation:
                     print(f"Reached max iterations for angle {aoa}") if self.show_logs is True else None
                     break
                 if abs(R_array.max()) < self.max_residual:
-                    G_solution_list.append(G_dict)
+                    G_solution_list.append(SimulationResult(
+                        aoa,
+                        G_dict,
+                        R_array
+                    ))
                     print(f"Found solution for angle {aoa}") if self.show_logs is True else None
                     print(f"number of iterations: {iteration}") if self.show_logs is True else None
                     last_successful_solution_dict = G_dict
@@ -126,7 +144,7 @@ class Simulation:
                     G = G + delta_G * self.damping_factor                  
                     G_dict = wing_pool.update_solution(G)
 
-                    # Pré-calcular distribuição de alfas e velocidade total por painel
+                    # Pre calculate alpha distribution and total velocity for each panel
                     total_velocity_dict = wing_pool.calculate_total_velocity(
                         aoa_idx=idx,
                         G_dict=G_dict
