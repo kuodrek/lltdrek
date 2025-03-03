@@ -1,12 +1,13 @@
 from typing import Dict, List, Sequence, Optional
-from dataclasses import dataclass, field
 import numpy as np
 import copy
+
 from src.models.wing import Wing
 from src.models.flight_condition import FlightCondition
 from src.utils import velocity
 from src.utils.timeit import timeit
 from src.utils.lookup import get_airfoil_data
+from src.models.types import DVSArray, DVSMap
 from src.models.exceptions import NonUniqueWingsException
 
 
@@ -54,7 +55,7 @@ class WingPool:
         moment_ref: Sequence = [0, 0, 0]
     ):
         self.wing_list = wing_list
-        self.complete_wing_pool = self._build_complete_wing_pool()
+        self.pool = self._build_pool()
         self.flight_condition = flight_condition
         self.initial_G = initial_G
         self.S_ref = S_ref
@@ -70,9 +71,9 @@ class WingPool:
             self.c_ref = self.wing_list[0].MAC
 
         if self.S_ref is None:
-            self.S_ref = sum([wing.total_area for wing in self.complete_wing_pool])
+            self.S_ref = sum([wing.total_area for wing in self.pool])
 
-        for _, wing in enumerate(self.complete_wing_pool):
+        for _, wing in enumerate(self.pool):
             self.total_panels += wing.N_panels
             if self.initial_G == None:
                 self.G_dict[wing.surface_name] = [0.1 for _ in range(wing.N_panels)]
@@ -85,7 +86,7 @@ class WingPool:
             ind_velocities_dict = self.calculate_induced_velocities(v_inf_array)
             self.ind_velocities_list.append(ind_velocities_dict)
 
-    def _build_complete_wing_pool(self):
+    def _build_pool(self):
         """
         Method that builds a wing pool with mirrored wing objects.
         This is the list that will be used in calculations
@@ -93,7 +94,7 @@ class WingPool:
         if not len(set(self.wing_list)) == len(self.wing_list):
             raise NonUniqueWingsException("All wings must have a unique name")
 
-        complete_wing_pool = []
+        wing_pool = []
         for wing in self.wing_list:
             mirrored_wing = copy.deepcopy(wing)
             mirrored_wing.surface_name += "_mirrored"
@@ -111,23 +112,22 @@ class WingPool:
 
             mirrored_wing.parent_wing = wing.surface_name
 
-            complete_wing_pool.append(wing)
-            complete_wing_pool.append(mirrored_wing)
-        return complete_wing_pool
+            wing_pool.append(wing)
+            wing_pool.append(mirrored_wing)
+        return wing_pool
 
-    def solution_array_to_dict(self, G_solution) -> None:
-        """
-        Method that splits the G_solution list, obtained by solving the 
-        the main equations, into separate solution lists for each wing in the
-        complete_wing_pool
+    def map_solution(self, G: DVSArray) -> DVSMap:
+        """Method that splits the G array, obtained by solving the 
+        the main equations, into separate solution lists for each wing in
+        wing pool
         """
         G_dict = {}
         global_counter = 0
-        for wing in self.complete_wing_pool:
+        for wing in self.pool:
             counter = 0
             G_array = np.zeros(wing.N_panels)
             while counter < wing.N_panels:
-                G_array[counter] = G_solution[global_counter]
+                G_array[counter] = G[global_counter]
                 counter += 1
                 global_counter += 1
             G_dict[wing.surface_name] = G_array
@@ -135,15 +135,16 @@ class WingPool:
 
     # @timeit
     def calculate_induced_velocities(self, v_inf_array: np.ndarray) -> dict:
-        # Essa função calcula tudo para um angulo de ataque e é chamada para cada aoa no __post_init__
+        """Pre calculates induced velocities for each panel and angle of attack
+        """
         ind_velocities_dict = {}
-        for wing in self.complete_wing_pool:
+        for wing in self.pool:
             ind_velocities_dict[wing.surface_name] = {}
 
-        for wing_cp in self.complete_wing_pool:
+        for wing_cp in self.pool:
             collocation_points = wing_cp.collocation_points
             cp_macs = wing_cp.cp_macs
-            for wing_vp in self.complete_wing_pool:
+            for wing_vp in self.pool:
                 vertice_points = wing_vp.vertice_points
                 v_ij_distr = velocity.get_induced_velocity_distribution(
                     collocation_points, cp_macs, vertice_points, v_inf_array, wing_vp.surface_name, self.flight_condition.ground_effect_check, self.flight_condition.h
@@ -153,7 +154,6 @@ class WingPool:
 
     def calculate_total_velocity(self, aoa_idx: int, G_dict: dict):
         """
-        WIP
         Method that calculates the sum of vij * G  + v_inf of all wings
         - Dá pra acelerar esse método calculando somente a velocidade dos objetos originais e copiando para os objetos 
         espelhados
@@ -162,13 +162,13 @@ class WingPool:
 
         ind_velocities_dict = self.ind_velocities_list[aoa_idx]
         total_velocity_dict = {}
-        for wing in self.complete_wing_pool:
+        for wing in self.pool:
             total_velocity_dict[wing.surface_name] = np.zeros((wing.N_panels,3))
 
-        for wing_i in self.complete_wing_pool:
+        for wing_i in self.pool:
             for i, _ in enumerate(total_velocity_dict[wing_i.surface_name]):
                 total_velocity_dict[wing_i.surface_name][i] += v_inf_array
-                for wing_j in self.complete_wing_pool:
+                for wing_j in self.pool:
                     G = G_dict[wing_j.surface_name]
                     ind_velocities_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name][i]
                     for j, v_ij in enumerate(ind_velocities_distr):
@@ -192,7 +192,7 @@ class WingPool:
 
     def _build_system_moment_ref(self) -> dict:
         system_moment_ref = {}
-        for wing in self.complete_wing_pool:
+        for wing in self.pool:
             moment_ref_distribution = np.zeros((wing.N_panels, 3))
             moment_ref_distribution = wing.collocation_points - self.moment_ref
             system_moment_ref[wing.surface_name] = moment_ref_distribution

@@ -39,7 +39,7 @@ class PostProcessing:
             CF = np.array((np.nan, np.nan, np.nan))
             CM = np.array((np.nan, np.nan, np.nan))
             Cl_distr_dict = {}
-            for wing in wing_pool.complete_wing_pool:
+            for wing in wing_pool.pool:
                 Cl_distr_dict[wing.surface_name] = np.nan
             return {
                 "CF": CF,
@@ -57,7 +57,7 @@ class PostProcessing:
         CM_distr = np.zeros((wing_pool.total_panels, 3))
         i_glob = 0
         Cl_distr_dict = {}
-        for wing_i in wing_pool.complete_wing_pool:
+        for wing_i in wing_pool.pool:
             ref_points_distr = self.ref_points_dict[wing_i.surface_name]
             Cl_distr = np.zeros(wing_i.N_panels)
             G_i = G_dict[wing_i.surface_name]
@@ -71,7 +71,7 @@ class PostProcessing:
                 )
                 cm_i = airfoil_coefficients["cm0"]
                 Cl_distr[i] = 2 * G_i[i]
-                for wing_j in wing_pool.complete_wing_pool:
+                for wing_j in wing_pool.pool:
                     G_j = G_dict[wing_j.surface_name]
                     v_ij_distr = wing_pool.ind_velocities_list[aoa_index][wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
@@ -127,7 +127,7 @@ class PostProcessing:
             CF = np.array((np.nan, np.nan, np.nan))
             CM = np.array((np.nan, np.nan, np.nan))
             Cl_distr_dict = {}
-            for wing in wing_pool.complete_wing_pool:
+            for wing in wing_pool.pool:
                 Cl_distr_dict[wing.surface_name] = np.nan
                 wing_coefficients[wing.surface_name] = {
                     "CF": CF,
@@ -144,7 +144,7 @@ class PostProcessing:
         CM_distr = np.zeros((wing_pool.total_panels, 3))
         i_glob = 0
         Cl_distr_dict = {}
-        for wing_i in wing_pool.complete_wing_pool:
+        for wing_i in wing_pool.pool:
             CF = np.zeros(3)
             CM = np.zeros(3)
             
@@ -161,7 +161,7 @@ class PostProcessing:
                 )
                 cm_i = airfoil_coefficients["cm0"]
                 Cl_distr[i] = 2 * G_i[i]
-                for wing_j in wing_pool.complete_wing_pool:
+                for wing_j in wing_pool.pool:
                     G_j = G_dict[wing_j.surface_name]
                     v_ij_distr = wing_pool.ind_velocities_list[aoa_index][wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):

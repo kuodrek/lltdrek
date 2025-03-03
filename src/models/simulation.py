@@ -8,7 +8,7 @@ from src.simulation.main_equations import (
     calculate_main_equation_simplified
 )
 from src.utils.timeit import timeit
-from src.models.types import AOA
+from src.models.types import AngleOfAttack
 
 class SimulationModes(Enum):
     """Ways of running a simulation
@@ -29,13 +29,13 @@ class SimulationModes(Enum):
 class SimulationResult:
     """
     :param alpha: Angle of attack of simulation
-    :type alpha: AOA
+    :type alpha: AngleOfAttack
     :param G_solution: Dictionary of panel's dimensionless vortex strength.
     Each key is a surface from related `WingPool`
     :param residual: Residual array of simulation
     :param convergence_check: True if simulation converged
     """
-    alpha: AOA
+    alpha: AngleOfAttack
     G_solution: dict[str, float]
     residual: np.ndarray
     convergence_check: bool
@@ -60,7 +60,7 @@ class Simulation:
 
     @classmethod
     def _get_matrix_dimension(cls, wing_pool: WingPool):
-        return sum([wing.N_panels for wing in wing_pool.complete_wing_pool])
+        return sum([wing.N_panels for wing in wing_pool.pool])
 
     # @timeit
     def run(self, wing_pool: WingPool) -> list[SimulationResult]:
@@ -89,7 +89,7 @@ class Simulation:
                     wing_pool=wing_pool,
                     matrix_dim=matrix_dim
                     )
-                G_dict = wing_pool.solution_array_to_dict(G_solution=G)
+                G_dict = wing_pool.map_solution(G)
 
             total_velocity_dict = wing_pool.calculate_total_velocity(
                 aoa_idx=idx,
@@ -118,7 +118,7 @@ class Simulation:
                 )
                 if iteration > self.max_iter:
                     G_solution = np.ones(matrix_dim) * np.nan
-                    G_dict = wing_pool.solution_array_to_dict(G_solution=G_solution)
+                    G_dict = wing_pool.map_solution(G_solution=G_solution)
                     G_solution_list.append(SimulationResult(
                         aoa,
                         G_dict,
@@ -142,7 +142,7 @@ class Simulation:
                     break
                 else:
                     G = G + delta_G * self.damping_factor                  
-                    G_dict = wing_pool.solution_array_to_dict(G)
+                    G_dict = wing_pool.map_solution(G)
 
                     # Pre calculate alpha distribution and total velocity for each panel
                     total_velocity_dict = wing_pool.calculate_total_velocity(

@@ -17,7 +17,7 @@ def calculate_main_equation_simplified(
     i_glob = 0
     Cl_alpha_array = np.zeros(matrix_dim) # Used for debugging purposes
     Cl0_array = np.zeros(matrix_dim) # Used for debugging purposes
-    for wing_i in wing_pool.complete_wing_pool:
+    for wing_i in wing_pool.pool:
             for i, _ in enumerate(wing_i.collocation_points):
                 linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
                 Cl0_i = linear_data["cl0"]
@@ -30,7 +30,7 @@ def calculate_main_equation_simplified(
                 B_matrix[i_glob] = Cl_alpha_i * (np.dot(v_inf_array, wing_i.u_n[i]) - alpha_zero_lift)
 
                 j_glob = 0
-                for wing_j in wing_pool.complete_wing_pool:
+                for wing_j in wing_pool.pool:
                     v_ij_distr = wing_pool.ind_velocities_list[aoa_idx][wing_i.surface_name][wing_j.surface_name]
                     for j, _ in enumerate(wing_j.collocation_points):
                         v_ij = v_ij_distr[i][j]
@@ -56,7 +56,7 @@ def calculate_main_equation(
     R_array = np.zeros(matrix_dim)
     i_glob = 0
     Cl_array = np.zeros(matrix_dim) # Used for debugging purposes
-    for wing in wing_pool.complete_wing_pool:
+    for wing in wing_pool.pool:
         if "_mirrored" in wing.surface_name: 
             i_glob += wing.N_panels
             continue
@@ -106,7 +106,7 @@ def calculate_corrector_equation(
     J_matrix = np.zeros([matrix_dim, matrix_dim])
     i_glob = 0
     Cl_alpha_array = np.zeros(matrix_dim) # Used for debugging purposes
-    for wing_i in wing_pool.complete_wing_pool:
+    for wing_i in wing_pool.pool:
         # print(f"corrector, asa: {wing_i.surface_name}")
         G_distr = G_dict[wing_i.surface_name]
         total_velocity_distr = total_velocity_dict[wing_i.surface_name]
@@ -133,7 +133,7 @@ def calculate_corrector_equation(
                         cl_alpha_check = True
                     ) * 180 / np.pi
             Cl_alpha_array[i_glob] = Cl_alpha_i
-            for wing_j in wing_pool.complete_wing_pool:
+            for wing_j in wing_pool.pool:
                 if "_mirrored" in wing_j.surface_name: 
                     j_glob += wing_j.N_panels
                     continue
