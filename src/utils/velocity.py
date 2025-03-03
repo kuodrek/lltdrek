@@ -75,7 +75,7 @@ def get_induced_velocity(
     velocity_ij = mac / (4 * np.pi) * \
         ( r2_cross_prod / (ri2j_abs*(ri2j_abs-r2_dot_prod)) \
         - r1_cross_prod / (ri1j_abs*(ri1j_abs-r1_dot_prod)) )
-    print(mac / (4 * np.pi))
+    # print(mac / (4 * np.pi))
     # print(r2_cross_prod / (ri2j_abs*(ri2j_abs-r2_dot_prod)))
     # print(r1_cross_prod / (ri1j_abs * (ri1j_abs - r1_dot_prod)))
 
@@ -90,7 +90,7 @@ def get_induced_velocity(
         same_panel_check = False
     else:
         same_panel_check = True
-    print(velocity_ij)
+    # print(velocity_ij)
     return velocity_ij, same_panel_check
 
 
