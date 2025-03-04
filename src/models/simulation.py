@@ -7,8 +7,7 @@ from src.simulation.main_equations import (
     calculate_main_equation,
     calculate_main_equation_simplified
 )
-from src.utils.timeit import timeit
-from src.models.types import AngleOfAttack
+from src.models.types import AngleOfAttack, DVSMap
 
 class SimulationModes(Enum):
     """Ways of running a simulation
@@ -32,13 +31,18 @@ class SimulationResult:
     :type alpha: AngleOfAttack
     :param G_solution: Dictionary of panel's dimensionless vortex strength.
     Each key is a surface from related `WingPool`
+    :type G_solution: DSVMap
     :param residual: Residual array of simulation
     :param convergence_check: True if simulation converged
     """
     alpha: AngleOfAttack
-    G_solution: dict[str, float]
+    v_inf_array: np.ndarray
+    G_solution: DVSMap
     residual: np.ndarray
     convergence_check: bool
+
+    def __repr__(self):
+        return f"""SimulationResult(alpha={self.alpha}, convergence_check={self.convergence_check})"""
 
 
 @dataclass(repr=False, eq=False, match_args=False, slots=True)
@@ -77,18 +81,18 @@ class Simulation:
         G_solution_list = []
         for idx, aoa in enumerate(wing_pool.flight_condition.angles_of_attack):
             iteration = 1
-
+            v_inf_array = wing_pool.flight_condition.v_inf_list[idx]
             if idx == 0: 
                 G = np.ones(matrix_dim) * 0.1
                 G_dict = wing_pool.G_dict
             if self.simulation_mode == "linear_first":
                 # Solve linear system to get a better approximation for G
                 G = calculate_main_equation_simplified(
-                    v_inf_array=wing_pool.flight_condition.v_inf_list[idx],
+                    v_inf_array=v_inf_array,
                     aoa_idx=idx,
                     wing_pool=wing_pool,
-                    matrix_dim=matrix_dim
-                    )
+                    matrix_dim=matrix_dim,
+                )
                 G_dict = wing_pool.map_solution(G)
 
             total_velocity_dict = wing_pool.calculate_total_velocity(
@@ -121,8 +125,10 @@ class Simulation:
                     G_dict = wing_pool.map_solution(G_solution=G_solution)
                     G_solution_list.append(SimulationResult(
                         aoa,
+                        v_inf_array,
                         G_dict,
-                        R_array
+                        R_array,
+                        convergence_check=False
                     ))
                     if "last_successful_solution" in locals():
                         G_dict = last_successful_solution_dict
@@ -133,8 +139,10 @@ class Simulation:
                 if abs(R_array.max()) < self.max_residual:
                     G_solution_list.append(SimulationResult(
                         aoa,
+                        v_inf_array,
                         G_dict,
-                        R_array
+                        R_array,
+                        convergence_check=True
                     ))
                     print(f"Found solution for angle {aoa}") if self.show_logs is True else None
                     print(f"number of iterations: {iteration}") if self.show_logs is True else None
