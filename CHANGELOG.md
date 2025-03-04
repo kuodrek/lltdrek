@@ -1,0 +1,62 @@
+# LLTDREK CHANGELOG
+
+All notable changes to this project will be documented in this file.
+- Following [text](https://keepachangelog.com/en/1.0.0/)
+
+## [Unreleased]
+
+## 1.0.0
+
+The main objective of these changes is to make the process of getting coefficients easier
+
+Now, simulation returns a `SimulationResult` object. In order to obtain coefficients, simply
+pass this object to `PostProcessing.get_coefficients` along with its related `wing_pool` to obtain
+local and global aerodynamic coefficients!
+
+### Added
+- Exceptions
+  - `AlphaNotFoundException`
+  - `NonUniqueWingsException`
+- Documentation
+- `Simulation`
+  - Changed main method to `run`
+  - `SimulationModes`: Represent ways of running a simulation
+  - `SimulationResult`: Container class that has simulation results
+- Types
+  - `AngleOfAttack`
+  - `DVS` (Dimensionless Vortex Strength)
+- `WingPool`
+  - Add `_build_system_moment_ref` for precalculating panel distances to a moment reference
+- `PostProcessing`
+  - Now has class methods for post processing simulation results
+  - `Coefficients`: Container class for Aerodynamic Coefficients
+  - `ProcessedSimulationResults`: Processed simulation results; Contains global and local coefficients
+- Notebook folder
+### Changed
+- Changed main directory to `src`
+- Imports in `__init__.py`
+- Renamed class attributes
+
+### TODO
+
+- Transform post_processing methods into class methods
+- Create SimulationResults object
+- Create AirfoilDatabase object
+  - Maybe use a dataframe library
+- Create input data interface
+  - Add airfoil data by yaml files
+- move setup_airfoil_data method from Wing to WingPool
+- Wing.generate_mesh() should automatically be called upon creation
+
+
+## 0.2.1
+
+### Added
+
+- Add build tests for multiple python versions
+    - Some users were reporting problems using python with these versions. Might be a dependency problem.
+- Get dependencies from requirements.txt file in pyproject.toml
+
+### Changed
+
+- Also update requirements
