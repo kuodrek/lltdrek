@@ -7,6 +7,36 @@ All notable changes to this project will be documented in this file.
 
 ## 1.0.0
 
+The main objective of these changes is to make the process of getting coefficients easier
+
+Now, simulation returns a `SimulationResult` object. In order to obtain coefficients, simply
+pass this object to `PostProcessing.get_coefficients` along with its related `wing_pool` to obtain
+local and global aerodynamic coefficients!
+
+### Added
+- Exceptions
+  - `AlphaNotFoundException`
+  - `NonUniqueWingsException`
+- Documentation
+- `Simulation`
+  - Changed main method to `run`
+  - `SimulationModes`: Represent ways of running a simulation
+  - `SimulationResult`: Container class that has simulation results
+- Types
+  - `AngleOfAttack`
+  - `DVS` (Dimensionless Vortex Strength)
+- `WingPool`
+  - Add `_build_system_moment_ref` for precalculating panel distances to a moment reference
+- `PostProcessing`
+  - Now has class methods for post processing simulation results
+  - `Coefficients`: Container class for Aerodynamic Coefficients
+  - `ProcessedSimulationResults`: Processed simulation results; Contains global and local coefficients
+- Notebook folder
+### Changed
+- Changed main directory to `src`
+- Imports in `__init__.py`
+- Renamed class attributes
+
 ### TODO
 
 - Transform post_processing methods into class methods
