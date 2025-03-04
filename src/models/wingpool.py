@@ -34,17 +34,6 @@ aoa_eff_dict = {
 """
 
 class WingPool:
-    # wing_list: List[Wing]
-    # flight_condition: FlightCondition
-    # initial_G: Dict = None
-    # S_ref: float = None
-    # c_ref: float = None
-    # moment_ref: Sequence = [0, 0, 0]
-    # ind_velocities_list: List = field(init=False)
-    # G_dict: Dict = field(init=False)
-    # complete_wing_pool: List[Wing] = field(init=False)
-    # total_panels: int = field(init=False)
-
     def __init__(
         self,
         wing_list: List[Wing],
@@ -55,12 +44,13 @@ class WingPool:
         moment_ref: Sequence = [0, 0, 0]
     ):
         self.wing_list = wing_list
-        self.pool = self._build_pool()
+        self.pool: Sequence[Wing] = self._build_pool()
         self.flight_condition = flight_condition
         self.initial_G = initial_G
         self.S_ref = S_ref
         self.c_ref = c_ref
-        self.moment_ref = np.array(moment_ref)
+        self._moment_ref = np.array(moment_ref)
+        self.system_moment_ref = self._build_system_moment_ref()
 
         self.G_dict = {}
 
@@ -194,6 +184,8 @@ class WingPool:
         system_moment_ref = {}
         for wing in self.pool:
             moment_ref_distribution = np.zeros((wing.N_panels, 3))
-            moment_ref_distribution = wing.collocation_points - self.moment_ref
+            moment_ref_distribution = wing.collocation_points - self._moment_ref
+            if "mirrored" in wing.surface_name:
+                moment_ref_distribution[:, 1] *= -1
             system_moment_ref[wing.surface_name] = moment_ref_distribution
         return system_moment_ref
