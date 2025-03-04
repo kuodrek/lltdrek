@@ -182,10 +182,9 @@ class WingPool:
 
     def _build_system_moment_ref(self) -> dict:
         system_moment_ref = {}
+        print(self.pool)
         for wing in self.pool:
             moment_ref_distribution = np.zeros((wing.N_panels, 3))
             moment_ref_distribution = wing.collocation_points - self._moment_ref
-            if "mirrored" in wing.surface_name:
-                moment_ref_distribution[:, 1] *= -1
             system_moment_ref[wing.surface_name] = moment_ref_distribution
         return system_moment_ref
