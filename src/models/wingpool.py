@@ -188,3 +188,14 @@ class WingPool:
             moment_ref_distribution = wing.collocation_points - self._moment_ref
             system_moment_ref[wing.surface_name] = moment_ref_distribution
         return system_moment_ref
+
+    def get_angular_velocity(self, angular_velocity) -> np.ndarray:
+        system_angular_velocities = {}
+        for wing, ref in self.system_moment_ref.items():
+            system_angular_velocities[wing] = np.cross(angular_velocity, ref)
+        return system_angular_velocities 
+    
+    def _build_system_freestream_velocities(self):
+        # transformar 1 v_inf_array em um sistema de v_inf_arrays, um vetor tridimensional para cada painel (e isos para cada angulo)
+        # retornar um dicionario onde a chave é o alfa e o valor é a distribuicao do sistema
+        ...
