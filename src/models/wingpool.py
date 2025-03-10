@@ -76,10 +76,6 @@ class WingPool:
         self.system_freestream_velocities = self._build_system_freestream_velocities()
         self.system_induced_velocities = self._build_system_induced_velocities()
 
-        for v_inf_array in self.flight_condition.v_inf_list: # TODO: switch this for loop to self.system_freestream_velocities
-            ind_velocities_dict = self.legacy_calculate_induced_velocities(v_inf_array)
-            self.legacy_ind_velocities_list.append(ind_velocities_dict)
-
     def _build_pool(self) -> List[Wing]:
         """Method that builds a wing pool with mirrored wing objects.
         This is the list that will be used in calculations
