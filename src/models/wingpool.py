@@ -191,7 +191,7 @@ class WingPool:
     def get_angular_velocity(self, angular_velocity) -> np.ndarray:
         system_angular_velocities = {}
         for wing, ref in self.system_moment_ref.items():
-            system_angular_velocities[wing] = np.cross(angular_velocity, ref)
+            system_angular_velocities[wing] = np.cross(ref, angular_velocity)
         return system_angular_velocities 
     
     def _build_system_freestream_velocities(self):
