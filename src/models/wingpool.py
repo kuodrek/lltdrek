@@ -53,7 +53,6 @@ class WingPool:
 
         self.G_dict = {}
 
-        self.legacy_ind_velocities_list = []
         self.total_panels = 0
 
         if self.c_ref is None:
