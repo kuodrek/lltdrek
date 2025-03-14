@@ -14,11 +14,9 @@ class SimulationModes(Enum):
     
     - `LINEAR_FIRST`: For each alpha in a non-linear simulation, solve the linear set of equations first
     as a first guess for the non-linear problem
-    - `LATEST_SOLUTION`: Use the solution of the previous alpha as the first guess for the next alpha
+    - `LATEST_SOLUTION`: Use the solution of previous alpha as a first guess for the next alpha
 
-    If the simulation is linear, the mode doesn't matter
-
-    If non-linear, `LATEST_SOLUTION` is usually faster
+    If simulation is linear, the mode doesn't matter
     """
     LINEAR_FIRST = "linear_first"
     LATEST_SOLUTION = "latest_solution"
@@ -36,7 +34,6 @@ class SimulationResult:
     :param convergence_check: True if simulation converged
     """
     alpha: AngleOfAttack
-    v_inf_array: np.ndarray
     G_solution: DVSMap
     residual: np.ndarray
     convergence_check: bool
@@ -79,24 +76,24 @@ class Simulation:
         print(f"Running simulation for angles between {wing_pool.flight_condition.angles_of_attack[0]} and {wing_pool.flight_condition.angles_of_attack[-1]}") if self.show_logs is True else None
         print(f"Linear simulation check: {self.linear_check}") if self.show_logs is True else None
         G_solution_list = []
-        for idx, aoa in enumerate(wing_pool.flight_condition.angles_of_attack):
+        for idx, alpha in enumerate(wing_pool.flight_condition.angles_of_attack):
             iteration = 1
-            v_inf_array = wing_pool.flight_condition.v_inf_list[idx]
+            freestream_velocities = wing_pool.system_freestream_velocities[alpha]
             if idx == 0: 
                 G = np.ones(matrix_dim) * 0.1
                 G_dict = wing_pool.G_dict
             if self.simulation_mode == "linear_first":
                 # Solve linear system to get a better approximation for G
                 G = calculate_main_equation_simplified(
-                    v_inf_array=v_inf_array,
-                    aoa_idx=idx,
+                    freestream_velocities=freestream_velocities,
+                    alpha=alpha,
                     wing_pool=wing_pool,
                     matrix_dim=matrix_dim,
                 )
                 G_dict = wing_pool.map_solution(G)
 
             total_velocity_dict = wing_pool.calculate_total_velocity(
-                aoa_idx=idx,
+                alpha=alpha,
                 G_dict=G_dict
                 )
             aoa_eff_dict = wing_pool.calculate_aoa_eff(total_velocity_dict)
@@ -115,17 +112,16 @@ class Simulation:
                     total_velocity_dict,
                     aoa_eff_dict,
                     G_dict,
-                    idx,
+                    alpha,
                     wing_pool,
                     matrix_dim,
                     self.linear_check
                 )
                 if iteration > self.max_iter:
                     G_solution = np.ones(matrix_dim) * np.nan
-                    G_dict = wing_pool.map_solution(G_solution=G_solution)
+                    G_dict = wing_pool.map_solution(G=G_solution)
                     G_solution_list.append(SimulationResult(
-                        aoa,
-                        v_inf_array,
+                        alpha,
                         G_dict,
                         R_array,
                         convergence_check=False
@@ -134,17 +130,16 @@ class Simulation:
                         G_dict = last_successful_solution_dict
                     else:
                         G_dict = wing_pool.G_dict
-                    print(f"Reached max iterations for angle {aoa}") if self.show_logs is True else None
+                    print(f"Reached max iterations for angle {alpha}") if self.show_logs is True else None
                     break
                 if abs(R_array.max()) < self.max_residual:
                     G_solution_list.append(SimulationResult(
-                        aoa,
-                        v_inf_array,
+                        alpha,
                         G_dict,
                         R_array,
                         convergence_check=True
                     ))
-                    print(f"Found solution for angle {aoa}") if self.show_logs is True else None
+                    print(f"Found solution for angle {alpha}") if self.show_logs is True else None
                     print(f"number of iterations: {iteration}") if self.show_logs is True else None
                     last_successful_solution_dict = G_dict
                     break
@@ -154,7 +149,7 @@ class Simulation:
 
                     # Pre calculate alpha distribution and total velocity for each panel
                     total_velocity_dict = wing_pool.calculate_total_velocity(
-                        aoa_idx=idx,
+                        alpha=alpha,
                         G_dict=G_dict
                         )
                     aoa_eff_dict = wing_pool.calculate_aoa_eff(total_velocity_dict)

@@ -29,6 +29,7 @@ class FlightCondition:
         angles_of_attack: Sequence[AngleOfAttack],
         h: Union[float, int],
         ground_effect_check: bool = False,
+        angular_velocity: Sequence[float] = [0, 0, 0]
     ):
         self.V_inf = V_inf
         self.nu = nu
@@ -44,6 +45,7 @@ class FlightCondition:
             )
             for alpha in self.angles_of_attack
         ])
+        self.angular_velocity = np.array(angular_velocity)
 
     def get_alpha_index(self, alpha: AngleOfAttack) -> int:
         index = np.where(self.angles_of_attack == alpha)[0]

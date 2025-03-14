@@ -22,7 +22,7 @@ class ProcessedSimulationResults:
 
 class PostProcessing:
     @classmethod
-    def _build_nan_results(simulation_result: SimulationResult, wing_pool: WingPool):
+    def _build_nan_results(cls, simulation_result: SimulationResult, wing_pool: WingPool):
         nan_coefficients = lambda N: Coefficients(
             forces=np.array((np.nan, np.nan, np.nan)),
             moments=np.array((np.nan, np.nan, np.nan)),
@@ -33,7 +33,7 @@ class PostProcessing:
         for wing in wing_pool.pool:
             if "_mirrored" in wing.surface_name: continue
             surface_coefficients[wing.surface_name] = nan_coefficients(wing.N_panels)
-        global_coefficients = nan_coefficients(sum([wing.N_panel for wing in wing_pool.pool] // 2))
+        global_coefficients = nan_coefficients(sum([wing.N_panels for wing in wing_pool.pool]) // 2)
         return ProcessedSimulationResults(simulation_result, global_coefficients, surface_coefficients)
 
     @classmethod
@@ -43,7 +43,7 @@ class PostProcessing:
         simulation_results: List[SimulationResult],
         S_ref: Optional[float] = None,
         c_ref: Optional[float] = None
-    ) -> dict:
+    ) -> List[ProcessedSimulationResults]:
         if not S_ref:
             S_ref = wing_pool.S_ref
         if not c_ref:
@@ -55,9 +55,6 @@ class PostProcessing:
                 processed_simulation_results.append(cls._build_nan_results(result, wing_pool))
                 continue
 
-            v_inf_array = result.v_inf_array
-            alpha = result.alpha * np.pi / 180 # Used for Rotation Matrices
-            alpha_index = wing_pool.flight_condition.get_alpha_index(result.alpha)
             G_dict = result.G_solution
 
             surface_coefficients: dict[str, Coefficients] = {}
@@ -66,6 +63,7 @@ class PostProcessing:
                 CM = np.zeros(3)
                 Cl_distr = np.zeros(wing_i.N_panels)
 
+                wing_freestreams_velocities = wing_pool.system_freestream_velocities[result.alpha][wing_i.surface_name]
                 ref_points_distr = wing_pool.system_moment_ref[wing_i.surface_name]
                 G_i = G_dict[wing_i.surface_name]
                 for i, _ in enumerate(wing_i.collocation_points):
@@ -80,19 +78,20 @@ class PostProcessing:
                     Cl_distr[i] = 2 * G_i[i]
                     for wing_j in wing_pool.pool:
                         G_j = G_dict[wing_j.surface_name]
-                        v_ij_distr = wing_pool.ind_velocities_list[alpha_index][wing_i.surface_name][wing_j.surface_name]
+                        v_ij_distr = wing_pool.system_induced_velocities[result.alpha][wing_i.surface_name][wing_j.surface_name]
                         for j, _ in enumerate(wing_j.collocation_points):
                             v_ij = v_ij_distr[i][j]
                             aux_cf += G_j[j] * v_ij
-                    aux_cf = (aux_cf + v_inf_array) * G_i[i]
+                    aux_cf = (aux_cf + wing_freestreams_velocities[i]) * G_i[i]
                     CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
                     CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
 
                 # Rotate force coefficients to stability axis
+                alpha_rad = result.alpha * np.pi / 180
                 rotation_matrix = np.array(
-                    [[np.cos(alpha), 0, np.sin(alpha)],
+                    [[np.cos(alpha_rad), 0, np.sin(alpha_rad)],
                     [0, 1, 0],
-                    [-1*np.sin(alpha), 0, np.cos(alpha)]]
+                    [-1*np.sin(alpha_rad), 0, np.cos(alpha_rad)]]
                 )
                 CF = np.matmul(rotation_matrix, CF)
                 surface_coefficients[wing_i.surface_name] = Coefficients(
@@ -107,7 +106,7 @@ class PostProcessing:
             global_coefficients = Coefficients(CF_global, CM_global, {})
             processed_result = ProcessedSimulationResults(result,global_coefficients,surface_coefficients)
             processed_simulation_results.append(processed_result)
-            return processed_simulation_results
+        return processed_simulation_results
 
     def get_wing_coefficients(self, wing_pool: WingPool, G_dict: dict[list], alpha_index: int, S_ref: float, c_ref: float) -> dict:
         wing_coefficients = {}
