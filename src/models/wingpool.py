@@ -31,6 +31,7 @@ aoa_eff_dict = {
 }
 """
 
+
 class WingPool:
     def __init__(
         self,
