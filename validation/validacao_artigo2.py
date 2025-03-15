@@ -1,9 +1,9 @@
 from validacao_aoas import aoa_list_2
-from models.wing import Wing
-from models.flight_condition import FlightCondition
-from models.wingpool import WingPool
-from models.simulation import Simulation
-from utils import data
+from src.models.wing import Wing
+from src.models.flight_condition import FlightCondition
+from src.models.wingpool import WingPool
+from src.models.simulation import Simulation
+from src.utils import data
 
 
 airfoils_data_dict, airfoils_dat_dict = data.load_folder('airfoils_test')
