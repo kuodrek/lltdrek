@@ -18,8 +18,15 @@ classifiers = [
 ]
 dynamic = ["dependencies"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov"]
 
 [project.urls]
 "Homepage" = "https://github.com/kuodrek/lltdrek"
