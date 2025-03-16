@@ -73,6 +73,15 @@ class WingPool:
         self.system_freestream_velocities = self._build_system_freestream_velocities()
         self.system_induced_velocities = self._build_system_induced_velocities()
 
+    @property
+    def moment_ref(self) -> np.ndarray:
+        return self._moment_ref
+
+    @moment_ref.setter
+    def moment_ref(self, value: Sequence):
+        self._moment_ref = np.array(value)
+        self.system_moment_ref = self._build_system_moment_ref()
+
     def _build_pool(self) -> List[Wing]:
         """Method that builds a wing pool with mirrored wing objects.
         This is the list that will be used in calculations
@@ -137,10 +146,7 @@ class WingPool:
                 system_total_velocities[wing_i.surface_name][i] += wing_freestream_velocities[i]
                 for wing_j in self.pool:
                     G = G_dict[wing_j.surface_name]
-                    ind_velocities_distr = self.system_induced_velocities[alpha][wing_i.surface_name][
-                        wing_j.surface_name
-                    ][i]
-                    # ind_velocities_distr = ind_velocities_dict[wing_i.surface_name][wing_j.surface_name][i]
+                    ind_velocities_distr = self.system_induced_velocities[alpha][wing_i.surface_name][wing_j.surface_name][i]
                     for j, v_ij in enumerate(ind_velocities_distr):
                         system_total_velocities[wing_i.surface_name][i] += v_ij * G[j]
         return system_total_velocities
