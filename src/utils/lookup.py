@@ -6,7 +6,8 @@ def get_airfoil_data(
     cp_reynolds: float,
     aoa: float,
     airfoil_data: dict,
-    cl_alpha_check: bool
+    cl_alpha_check: bool,
+    show_logs: bool = True
 ) -> float:
     """
     - Função que retorna os dados de perfil do painel de uma asa.
@@ -25,37 +26,42 @@ def get_airfoil_data(
     - TODO: Passar a distribuiçao de aoa's de uma asa e retornar todos os cl's / cl_alpha's
     """
     # Verificar se o painel em questão é uma mescla de perfis
+    linear_check = False
     if len(cp_airfoil[1]) > 1:
         merge_parameter = cp_airfoil[0]
 
         airfoil_root = cp_airfoil[1][0]
-        Cl_root = cl_lookup(airfoil_data[airfoil_root], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
+        Cl_root = cl_lookup(airfoil_data[airfoil_root], cp_reynolds, aoa, cl_alpha_check, linear_check, show_logs)
         airfoil_tip = cp_airfoil[1][1]
-        Cl_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
+        Cl_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa, cl_alpha_check, linear_check, show_logs)
 
         Cl = Cl_root * (1 - merge_parameter) + Cl_tip * merge_parameter
     else:
         airfoil = cp_airfoil[1][0]
-        Cl = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa, cl_alpha_check, linear_check=False)
+        Cl = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa, cl_alpha_check, linear_check, show_logs)
     return Cl
 
 
 def get_linear_data_and_clmax(
     cp_airfoil: list,
     cp_reynolds: float,
-    airfoil_data: dict
+    airfoil_data: dict,
+    show_logs: bool = True
     ) -> dict:
     """
     Função que realizar o lookup nos dados lineares e clmax
     Número de Reynolds utilizado é o mais próximo de cp_reynolds
     """
+    aoa = None
+    cl_alpha_check = False
+    linear_check = True
     if len(cp_airfoil[1]) > 1:
         merge_parameter = cp_airfoil[0]
 
         airfoil_root = cp_airfoil[1][0]
-        lookup_data_root = cl_lookup(airfoil_data[airfoil_root], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
+        lookup_data_root = cl_lookup(airfoil_data[airfoil_root], cp_reynolds, aoa, cl_alpha_check, linear_check, show_logs)
         airfoil_tip = cp_airfoil[1][1]
-        lookup_data_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
+        lookup_data_tip = cl_lookup(airfoil_data[airfoil_tip], cp_reynolds, aoa, cl_alpha_check, linear_check, show_logs)
 
         lookup_data = {
             "cl_alpha": lookup_data_root["cl_alpha"] * (1 - merge_parameter) + lookup_data_tip["cl_alpha"] * merge_parameter,
@@ -65,12 +71,12 @@ def get_linear_data_and_clmax(
         }
     else:
         airfoil = cp_airfoil[1][0]
-        lookup_data = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa=None, cl_alpha_check=False, linear_check=True)
+        lookup_data = cl_lookup(airfoil_data[airfoil], cp_reynolds, aoa, cl_alpha_check, linear_check, show_logs)
     
     return lookup_data
 
 
-def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_alpha_check: bool, linear_check: bool) -> float:
+def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_alpha_check: bool, linear_check: bool, show_logs: bool = True) -> float:
     """
     - Função que realiza o lookup do numero de reynolds para, então, realizar o lookup de 
     aoa
@@ -80,6 +86,8 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
     """
     reynolds_list_str = list(airfoil_data_dict)
     reynolds_list = [float(reynolds) for reynolds in reynolds_list_str]
+    if show_logs is True and (aoa < reynolds_list[0] or aoa > reynolds_list[-1]):
+        print(f"Warning: Reynolds {aoa} out of bounds")
     if reynolds_number <= reynolds_list[0]:
         if linear_check:
             return {
@@ -139,10 +147,12 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
     return cl
 
 
-def aoa_list_lookup(cl_data: np.ndarray, aoa: float) -> float:
+def aoa_list_lookup(cl_data: np.ndarray, aoa: float, show_logs: bool = True) -> float:
     """
     TODO: melhorar o código quando o alfa tá fora dos limites da lista
     """
+    if show_logs is True and (aoa < cl_data[0][0] or aoa > cl_data[-1][0]):
+        print(f"Warning: Alpha {aoa} out of bounds")
     if aoa <= cl_data[0][0]:
         aoa_i = cl_data[0][0]
         aoa_ii = cl_data[1][0]
@@ -165,7 +175,7 @@ def aoa_list_lookup(cl_data: np.ndarray, aoa: float) -> float:
     return cl_interp
 
 
-def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float) -> float:
+def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float, show_logs: bool = True) -> float:
     """
     - Função que calcula o cl alpha para um dado
     aoa utilizando a fórmula da diferença dividida finita
@@ -179,6 +189,9 @@ def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float) -> float:
     - Referência: Métodos numéricos para engenharia, capítulo 6
 
     """
+    if show_logs is True and (aoa < cl_data[0][0] or aoa > cl_data[-1][0]):
+        print(f"Warning: Alpha {aoa} out of bounds")
+    
     if aoa <= cl_data[0][0]:
         aoa_i = cl_data[0][0]
         aoa_ii = cl_data[1][0]
@@ -199,7 +212,3 @@ def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float) -> float:
     
     cl_alpha = (cl_ii - cl_i) / (aoa_ii - aoa_i)
     return cl_alpha
-
-
-# Função para encontrar o índice do valor mais próximo em uma array
-def find_closest(arr, val): return np.abs(arr - val).argmin()

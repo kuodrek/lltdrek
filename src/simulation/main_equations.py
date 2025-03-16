@@ -10,7 +10,8 @@ def calculate_main_equation_simplified(
     freestream_velocities: Dict,
     alpha: AngleOfAttack,
     wing_pool: WingPool,
-    matrix_dim: int
+    matrix_dim: int,
+    show_logs: bool = True
 ) -> np.ndarray:
     A_matrix = np.zeros([matrix_dim, matrix_dim])
     B_matrix = np.zeros(matrix_dim)
@@ -21,7 +22,7 @@ def calculate_main_equation_simplified(
     for wing_i in wing_pool.pool:
             wing_freestream_velocities = freestream_velocities[wing_i.surface_name]
             for i, _ in enumerate(wing_i.collocation_points):
-                linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
+                linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data, show_logs)
                 Cl0_i = linear_data["cl0"]
                 Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
                 Cl0_array[i_glob] = Cl0_i
@@ -49,7 +50,8 @@ def calculate_main_equation(
     G_dict: dict,
     wing_pool: WingPool,
     matrix_dim: int,
-    linear_check: bool
+    linear_check: bool,
+    show_logs: bool = True
 ) -> np.ndarray:
     """
     Main system of equations -
@@ -68,7 +70,7 @@ def calculate_main_equation(
         total_velocity_distr = total_velocity_dict[wing.surface_name]
         for i, _ in enumerate(wing.collocation_points):
             if linear_check:
-                linear_data = get_linear_data_and_clmax(wing.cp_airfoils[i], wing.cp_reynolds[i], wing.airfoil_data)
+                linear_data = get_linear_data_and_clmax(wing.cp_airfoils[i], wing.cp_reynolds[i], wing.airfoil_data, show_logs)
                 Cl0_i = linear_data["cl0"]
                 Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
                 Cl_i = Cl_alpha_i * aoa_eff_distr[i] + Cl0_i
@@ -78,7 +80,8 @@ def calculate_main_equation(
                     wing.cp_reynolds[i],
                     aoa_eff_distr[i] * 180 / np.pi,
                     wing.airfoil_data,
-                    cl_alpha_check = False
+                    cl_alpha_check = False,
+                    show_logs=show_logs
                 )
             Cl_array[i_glob] = Cl_i
             R_array[i_glob] = 2 * npla.norm(np.cross(total_velocity_distr[i], wing.cp_dsl[i])) * G_list[i] \
@@ -97,7 +100,8 @@ def calculate_corrector_equation(
     alpha: AngleOfAttack,
     wing_pool: WingPool,
     matrix_dim: int,
-    linear_check: bool
+    linear_check: bool,
+    show_logs: bool = True
 ) -> np.ndarray:
     """
     Newton corrector system of equations
@@ -121,7 +125,7 @@ def calculate_corrector_equation(
             v_a_i = np.dot(total_velocity_distr[i], wing_i.u_a[i])
 
             if linear_check:
-                linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data)
+                linear_data = get_linear_data_and_clmax(wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data, show_logs)
                 Cl_alpha_i = linear_data["cl_alpha"] * 180 / np.pi
             else:
                 Cl_alpha_i = get_airfoil_data(
@@ -129,7 +133,8 @@ def calculate_corrector_equation(
                         wing_i.cp_reynolds[i],
                         aoa_eff_distr[i] * 180 / np.pi,
                         wing_i.airfoil_data,
-                        cl_alpha_check = True
+                        cl_alpha_check = True,
+                        show_logs=show_logs
                     ) * 180 / np.pi
             Cl_alpha_array[i_glob] = Cl_alpha_i
             for wing_j in wing_pool.pool:
