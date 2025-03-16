@@ -269,57 +269,51 @@ class PostProcessing:
         return CLmax_dict
 
     def get_aerodynamic_center(
-        self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref: float, c_ref: float
+        self,
+        wing_pool: WingPool,
+        simulation_results: list[SimulationResult],
+        S_ref: Optional[float],
+        c_ref: Optional[float],
     ) -> dict:
+        if not S_ref:
+            S_ref = wing_pool.S_ref
+        if not c_ref:
+            c_ref = wing_pool.c_ref
         aoa_list = wing_pool.flight_condition.angles_of_attack
-        if aoa_1 not in aoa_list or aoa_2 not in aoa_list:
-            raise Exception("aoa_1 and aoa_2 must be in aoa_list")
-
-        aoa_1_idx = aoa_list.index(aoa_1)
-        aoa_2_idx = aoa_list.index(aoa_2)
 
         ac = 0.25 * c_ref
         ac_min = 0.1 * c_ref
         ac_max = 1.5 * c_ref
         max_iter = 100
 
-        self.ref_point = [ac, 0, 0]
+        wing_pool.moment_ref = [ac, 0, 0]
         ac_check = False
 
         i = 1
+        alpha_values = [alpha for alpha in simulation_results.alpha]
         while not ac_check:
             if i > max_iter:
                 print("Reached max iteration number")
                 break
 
-            self.build_reference_points_dict(wing_pool)
+            coefficients = self.get_coefficients(wing_pool, simulation_results, S_ref, c_ref)
 
-            coefs_1 = self.get_global_coefficients(
-                wing_pool, G_list[0], alpha_index=aoa_1_idx, S_ref=S_ref, c_ref=c_ref
-            )
-            coefs_1 = self.get_coefficients(
-                wing_pool,
-            )
-            Cm_1 = coefs_1["CM"][1]
-            coefs_2 = self.get_global_coefficients(
-                wing_pool, G_list[1], alpha_index=aoa_2_idx, S_ref=S_ref, c_ref=c_ref
-            )
-            Cm_2 = coefs_2["CM"][1]
+            CM_values = [coef.surface_coefficients.moments.Cm for coef in coefficients]
+            CM_poly = np.polyfit(alpha_values, CM_values, 1)
 
-            Cm_alpha = (Cm_2 - Cm_1) / (aoa_2 - aoa_1)
+            Cm_alpha = CM_poly[0]
             if abs(Cm_alpha) <= 1e-6 or i == max_iter:
-                Cm_ac = Cm_1
+                Cm_ac = CM_poly[1]
                 ac_check = True
                 x_ac = ac / c_ref
             else:
                 if Cm_alpha < 0:
                     ac_min = ac
                     ac = (ac + ac_max) / 2
-                    self.ref_point = [ac, 0, 0]
                 else:
                     ac_max = ac
                     ac = (ac_min + ac_max) / 2
-                    self.ref_point = [ac, 0, 0]
+                wing_pool.moment_ref = [ac, 0, 0]
             i += 1
 
         return {"x_ac": x_ac, "Cm_ac": Cm_ac}
