@@ -93,8 +93,8 @@ class Simulation:
                 G_dict = wing_pool.map_solution(G)
 
             total_velocity_dict = wing_pool.calculate_total_velocity(
-                alpha=alpha,
-                G_dict=G_dict
+                    alpha=alpha,
+                    G_dict=G_dict
                 )
             aoa_eff_dict = wing_pool.calculate_aoa_eff(total_velocity_dict)
 
