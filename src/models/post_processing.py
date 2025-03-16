@@ -7,12 +7,32 @@ from src.models.wing import Wing
 from src.models.flight_condition import FlightCondition
 from src.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
 
+class ForceCoefficients:
+    def __init__(self, CD: float, CY: float, CL: float):
+        self.CD = CD
+        self.CY = CY
+        self.CL = CL
+    
+    def __repr__(self):
+        return f"ForceCoefficients(CD={self.CD}, CY={self.CY}, CL={self.CL})"
 
-@dataclass
+class MomentCoefficients:
+    def __init__(self, Cl: float, Cm: float, Cn: float):
+        self.Cl = Cl
+        self.Cm = Cm
+        self.Cn = Cn
+
+    def __repr__(self):
+        return f"MomentCoefficients(Cl={self.Cl}, Cm={self.Cm}, Cn={self.Cn})"
+
 class Coefficients:
-    forces: dict
-    moments: dict
-    cl_distribution: dict
+    def __init__(self, force_coefficients, moment_coefficients, cl_distribution):
+        self.forces = ForceCoefficients(*force_coefficients)
+        self.moments = MomentCoefficients(*moment_coefficients)
+        self.cl_distribution = cl_distribution
+    
+    def __repr__(self):
+        return f"Coefficients(forces={self.forces}, moments={self.moments}, cl_distribution={self.cl_distribution})"
 
 @dataclass
 class ProcessedSimulationResults:
@@ -24,8 +44,8 @@ class PostProcessing:
     @classmethod
     def _build_nan_results(cls, simulation_result: SimulationResult, wing_pool: WingPool):
         nan_coefficients = lambda N: Coefficients(
-            forces=np.array((np.nan, np.nan, np.nan)),
-            moments=np.array((np.nan, np.nan, np.nan)),
+            force_coefficients=np.array((np.nan, np.nan, np.nan)),
+            moment_coefficients=np.array((np.nan, np.nan, np.nan)),
             cl_distribution=np.full(N, np.nan)
         )
         global_coefficients = {}
@@ -61,7 +81,7 @@ class PostProcessing:
             for wing_i in wing_pool.pool:
                 CF = np.zeros(3)
                 CM = np.zeros(3)
-                Cl_distr = np.zeros(wing_i.N_panels)
+                cl_distribution = np.zeros(wing_i.N_panels)
 
                 wing_freestreams_velocities = wing_pool.system_freestream_velocities[result.alpha][wing_i.surface_name]
                 ref_points_distr = wing_pool.system_moment_ref[wing_i.surface_name]
@@ -75,7 +95,7 @@ class PostProcessing:
                         wing_i.airfoil_data
                     )
                     cm_i = airfoil_coefficients["cm0"]
-                    Cl_distr[i] = 2 * G_i[i]
+                    cl_distribution[i] = 2 * G_i[i]
                     for wing_j in wing_pool.pool:
                         G_j = G_dict[wing_j.surface_name]
                         v_ij_distr = wing_pool.system_induced_velocities[result.alpha][wing_i.surface_name][wing_j.surface_name]
@@ -95,14 +115,14 @@ class PostProcessing:
                 )
                 CF = np.matmul(rotation_matrix, CF)
                 surface_coefficients[wing_i.surface_name] = Coefficients(
-                    forces=CF, moments=CM, cl_distribution=Cl_distr
+                    CF, CM, cl_distribution
                 )
 
             CF_global = np.zeros(3)
             CM_global = np.zeros(3)
             for _, coefficients in surface_coefficients.items():
-                CF_global += coefficients.forces
-                CM_global += coefficients.moments
+                CF_global += np.array([coefficients.forces.CD, coefficients.forces.CY, coefficients.forces.CL])
+                CM_global += np.array([coefficients.moments.Cl, coefficients.moments.Cm, coefficients.moments.Cn])
             global_coefficients = Coefficients(CF_global, CM_global, {})
             processed_result = ProcessedSimulationResults(result,global_coefficients,surface_coefficients)
             processed_simulation_results.append(processed_result)
