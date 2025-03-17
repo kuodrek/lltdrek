@@ -1,5 +1,11 @@
+from typing import Union
 import numpy as np
 
+
+def check_value_out_of_bounds(value: Union[int, float], lower_bound: Union[int, float], upper_bound: Union[int, float]) -> bool:
+    if value < lower_bound or value > upper_bound:
+        return True
+    return False
 
 def get_airfoil_data(
     cp_airfoil: list,
@@ -43,10 +49,10 @@ def get_airfoil_data(
 
 
 def get_linear_data_and_clmax(
-    cp_airfoil: list,
-    cp_reynolds: float,
-    airfoil_data: dict,
-    show_logs: bool = True
+        cp_airfoil: list,
+        cp_reynolds: float,
+        airfoil_data: dict,
+        show_logs: bool = True
     ) -> dict:
     """
     Função que realizar o lookup nos dados lineares e clmax
@@ -86,8 +92,8 @@ def cl_lookup(airfoil_data_dict: dict, reynolds_number: float, aoa: float, cl_al
     """
     reynolds_list_str = list(airfoil_data_dict)
     reynolds_list = [float(reynolds) for reynolds in reynolds_list_str]
-    if show_logs is True and (aoa < reynolds_list[0] or aoa > reynolds_list[-1]):
-        print(f"Warning: Reynolds {aoa} out of bounds")
+    if show_logs is True and check_value_out_of_bounds(reynolds_number, reynolds_list[0], reynolds_list[-1]):
+        print(f"Warning: Reynolds {reynolds_number} out of bounds")
     if reynolds_number <= reynolds_list[0]:
         if linear_check:
             return {
@@ -151,8 +157,9 @@ def aoa_list_lookup(cl_data: np.ndarray, aoa: float, show_logs: bool = True) -> 
     """
     TODO: melhorar o código quando o alfa tá fora dos limites da lista
     """
-    if show_logs is True and (aoa < cl_data[0][0] or aoa > cl_data[-1][0]):
+    if show_logs is True and check_value_out_of_bounds(aoa, cl_data[0][0], cl_data[-1][0]):
         print(f"Warning: Alpha {aoa} out of bounds")
+
     if aoa <= cl_data[0][0]:
         aoa_i = cl_data[0][0]
         aoa_ii = cl_data[1][0]
@@ -189,7 +196,7 @@ def get_non_linear_cl_alpha(cl_data: np.ndarray, aoa: float, show_logs: bool = T
     - Referência: Métodos numéricos para engenharia, capítulo 6
 
     """
-    if show_logs is True and (aoa < cl_data[0][0] or aoa > cl_data[-1][0]):
+    if show_logs is True and check_value_out_of_bounds(aoa, cl_data[0][0], cl_data[-1][0]):
         print(f"Warning: Alpha {aoa} out of bounds")
     
     if aoa <= cl_data[0][0]:
