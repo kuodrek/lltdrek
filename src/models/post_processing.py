@@ -9,6 +9,19 @@ from src.models.wingpool import WingPool
 from src.utils.lookup import get_linear_data_and_clmax
 
 class AerodynamicCenter:
+    """Container class that contains results for `PostProcessing.get_aerodynamic_center` method
+    
+    :param x_ac: Adimensional aerodynamic center position, measured by percentage of `c_ref`
+    :type x_ac: float
+    :param Cm_ac: Pitching moment value at aerodynamic center
+    :type Cm_ac: float
+    :param Cm_alpha: Pitching moment slope.  
+        Value should be close to 0, based on the residual given to  
+        `PostProcessing.get_aerodynamic_center`, in case of convergence
+    :type Cm_alpha: float
+    :param n_iter: Number of iterations needed to find the aerodynamic center
+    :type n_iter: int
+    """
     def __init__(self, x_ac: float, Cm_ac: float, Cm_alpha: float, n_iter: int):
         self.x_ac = x_ac
         self.Cm_ac = Cm_ac
@@ -19,6 +32,15 @@ class AerodynamicCenter:
         return f"AerodynamicCenter(x_ac={self.x_ac}, Cm_ac={self.Cm_ac}, Cm_alpha={self.Cm_alpha}, n_iter={self.n_iter})"
 
 class ForceCoefficients:
+    """Container class for Aerodynamic Force coefficients
+
+    :param CD: Drag Coefficient
+    :type CD: float
+    :param CY: Cross-wind Coefficient
+    :type CY: float
+    :param CL: Lift Coefficient
+    :type CL: float
+    """
     def __init__(self, CD: float, CY: float, CL: float):
         self.CD = CD
         self.CY = CY
@@ -29,6 +51,15 @@ class ForceCoefficients:
 
 
 class MomentCoefficients:
+    """Container class for Aerodynamic Moment coefficients
+
+    :param Cl: Rolling moment Coefficient
+    :type Cl: float
+    :param Cm: Pitching moment Coefficient
+    :type Cm: float
+    :param Cn: Yawing moment Coefficient
+    :type Cn: float
+    """
     def __init__(self, Cl: float, Cm: float, Cn: float):
         self.Cl = Cl
         self.Cm = Cm
@@ -39,6 +70,18 @@ class MomentCoefficients:
 
 
 class Coefficients:
+    """Class that contains force and moment coefficients, and Cl distribution for a surface
+    or wing pool
+
+    In case of global coefficients, cl_distribution will be an empty dictionary
+
+    :param force_coefficients: Sequence of aerodynamic force coefficients. Must follow order `(CD, CY, CL)`
+    :type force_coefficients: Sequence
+    :param moment_coefficients: Sequence of aerodynamic force coefficients. Must follow order `(Cl, Cm, Cn)`
+    :type moment_coefficients: Sequence
+    :param cl_distribution: Distribution of section lift coefficients for a wing_pool
+    :type cl_distribution: dict
+    """
     def __init__(self, force_coefficients, moment_coefficients, cl_distribution):
         self.forces = ForceCoefficients(*force_coefficients)
         self.moments = MomentCoefficients(*moment_coefficients)
@@ -50,6 +93,17 @@ class Coefficients:
 
 @dataclass
 class ProcessedSimulationResults:
+    """Container class returned by `PostProcessing.get_coefficients`. 
+    
+    It returns simulation_result, global_coefficients and surface_coefficients for a given angle of attack
+
+    :param simulation_result: Simulation results
+    :type simulation_result: SimulationResult
+    :param global_coefficients: Total aerodynamic coefficients of the wing pool
+    :type global_coefficients: Coefficients
+    :param surface_coefficients: Individual aerodynamic coefficients of the wing pool
+    :type surface_coefficients: dict[str, Coefficients]
+    """
     simulation_result: SimulationResult
     global_coefficients: Coefficients
     surface_coefficients: dict[str, Coefficients]
@@ -57,7 +111,11 @@ class ProcessedSimulationResults:
 
 class PostProcessing:
     @classmethod
-    def _build_nan_results(cls, simulation_result: SimulationResult, wing_pool: WingPool):
+    def _build_nan_results(cls, simulation_result: SimulationResult, wing_pool: WingPool) -> ProcessedSimulationResults:
+        """Method that returns `np.nan` for everything when `SimulationResult.convergence_check == False`
+
+        :returns: `ProcessedSimulationResults`, but with `np.nan` as values
+        """
         nan_coefficients = lambda N: Coefficients(
             force_coefficients=np.array((np.nan, np.nan, np.nan)),
             moment_coefficients=np.array((np.nan, np.nan, np.nan)),
@@ -80,6 +138,24 @@ class PostProcessing:
         S_ref: Optional[float] = None,
         c_ref: Optional[float] = None,
     ) -> List[ProcessedSimulationResults]:
+        """Main method for processing simulation results and obtaining aerodynamic coefficients
+
+        - In case of angles that did not converge, will return `ProcessedSimulationResults`
+        with `np.nan` results only
+
+        :param wing_pool: System of surfaces used in simulation
+        :type wing_pool: WingPool
+        :param simulation_results: Results of simulation given by `Simulation.run`
+        :type simulation_results: List[SimulationResult]
+        :param S_ref: Reference surface value
+        :type S_ref: Optional[float]
+        :param c_ref: Reference chord value
+        :type c_ref: Optional[float]
+
+        :returns: A list of `ProcessedSimulationResults`, containing
+            global coefficients, surface coefficients and Cl distribution for each
+            angle of attack simulated
+        """
         if not S_ref:
             S_ref = wing_pool.S_ref
         if not c_ref:
@@ -160,7 +236,32 @@ class PostProcessing:
         c_ref: Optional[float] = None,
         max_iter: int = 100,
         residual: float = 1e-6
-    ) -> dict:
+    ) -> AerodynamicCenter:
+        """Tries to find aerodynamic center of a wing pool by using binary search method.
+
+        - This methods takes a list of `SimulationResult` and calculates the pitching coefficient moments (Cm)
+        - It then fits a linear equation using `np.polyfit([angles_of_attack], [Cm_values], 1)`
+            - Checks if `Cm_alpha < residual`
+        - Wing pool is copied in order to avoid changing original object
+
+        Aerodynamic center is defined as the point in a wing (or system of wings)
+        where the pitching moment coefficient does not vary with angle of attack
+
+        :param original_wing_pool: Input Wing Pool
+        :type original_wing_pool: WingPool
+        :param simulation_results: List of simulation results 
+        :type simulation_results: list[SimulationResult]
+        :param S_ref: Reference surface value
+        :type S_ref: Optional[float]
+        :param c_ref: Reference chord value
+        :type c_ref: Optional[float]
+        :param max_iter: Max number of iterations used in binary search
+        :type max_iter: int
+        :param residual: Stopping criteria of Cm alpha used in binary search
+        :type residual: float
+
+        :returns AerodynamicCenter:
+        """
         wing_pool = deepcopy(original_wing_pool) # Make a copy to avoid updating original object
         if np.any(wing_pool.flight_condition.angular_velocity != 0):
             print("Warning: trying to find aerodynamic center with non-zero angular rates may result in inconsistent values")
