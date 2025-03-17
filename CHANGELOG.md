@@ -3,7 +3,35 @@
 All notable changes to this project will be documented in this file.
 - Following [text](https://keepachangelog.com/en/1.0.0/)
 
+## TODO
+
+- Create AirfoilDatabase object
+  - Maybe use a dataframe library
+- Create input data interface
+  - Add airfoil data by yaml files
+- move setup_airfoil_data method from Wing to WingPool
+- Wing.generate_mesh() should automatically be called by wing pool
+- Rewrite `PostProcessing.get_CLmax_linear` method
+
 ## [Unreleased]
+
+## 1.1.0
+
+### Added
+- Add Notebook with aerodynamic center calculation example
+- Add show logs option for many functions
+- Add verification if reynolds number or angle of attack is out of bounds in airfoil data
+- Add setter method for `WingPool.moment_ref`
+  - Needed for aerodynamic center calculations, since changing `WingPool.moment_ref` changes freestream system velocities
+- Add `ForceCoefficients` and `MomentCoefficients` to simplify coefficient access
+- Add class `AerodynamicCenter`, related to `PostProcessing.get_aerodynamic_center`
+
+
+### Changed
+- Update `PostProcessing.get_aerodynamic_center` to work with new version
+- Remove unused function `lookup.find_closest`
+- Display `Coefficient` results as `ForceCoefficients` and `MomentCoefficients`
+- Remove `PostProcessing.get_wing_coefficients` and `PostProcessing.get_CLmax_linear` methods
 
 ## 1.0.0
 
@@ -44,15 +72,6 @@ local and global aerodynamic coefficients!
 - Imports in `__init__.py`
 - Renamed class attributes
 - Build system freestream and angular velocities instead of using only one array
-
-### TODO
-
-- Create AirfoilDatabase object
-  - Maybe use a dataframe library
-- Create input data interface
-  - Add airfoil data by yaml files
-- move setup_airfoil_data method from Wing to WingPool
-- Wing.generate_mesh() should automatically be called by wing pool
 
 ## 0.2.1
 

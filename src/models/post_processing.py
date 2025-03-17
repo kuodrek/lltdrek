@@ -1,37 +1,131 @@
-from typing import List, Union, Optional, Sequence
+from copy import deepcopy
+from dataclasses import dataclass
+from typing import List, Optional, Union
+
 import numpy as np
-from dataclasses import dataclass, field
+
 from src.models.simulation import SimulationResult
 from src.models.wingpool import WingPool
-from src.models.wing import Wing
-from src.models.flight_condition import FlightCondition
-from src.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
+from src.utils.lookup import get_linear_data_and_clmax
+
+class AerodynamicCenter:
+    """Container class that contains results for `PostProcessing.get_aerodynamic_center` method
+    
+    :param x_ac: Adimensional aerodynamic center position, measured by percentage of `c_ref`
+    :type x_ac: float
+    :param Cm_ac: Pitching moment value at aerodynamic center
+    :type Cm_ac: float
+    :param Cm_alpha: Pitching moment slope.  
+        Value should be close to 0, based on the residual given to  
+        `PostProcessing.get_aerodynamic_center`, in case of convergence
+    :type Cm_alpha: float
+    :param n_iter: Number of iterations needed to find the aerodynamic center
+    :type n_iter: int
+    """
+    def __init__(self, x_ac: float, Cm_ac: float, Cm_alpha: float, n_iter: int):
+        self.x_ac = x_ac
+        self.Cm_ac = Cm_ac
+        self.Cm_alpha = Cm_alpha
+        self.n_iter = n_iter
+
+    def __repr__(self):
+        return f"AerodynamicCenter(x_ac={self.x_ac}, Cm_ac={self.Cm_ac}, Cm_alpha={self.Cm_alpha}, n_iter={self.n_iter})"
+
+class ForceCoefficients:
+    """Container class for Aerodynamic Force coefficients
+
+    :param CD: Drag Coefficient
+    :type CD: float
+    :param CY: Cross-wind Coefficient
+    :type CY: float
+    :param CL: Lift Coefficient
+    :type CL: float
+    """
+    def __init__(self, CD: float, CY: float, CL: float):
+        self.CD = CD
+        self.CY = CY
+        self.CL = CL
+
+    def __repr__(self):
+        return f"ForceCoefficients(CD={self.CD}, CY={self.CY}, CL={self.CL})"
 
 
-@dataclass
+class MomentCoefficients:
+    """Container class for Aerodynamic Moment coefficients
+
+    :param Cl: Rolling moment Coefficient
+    :type Cl: float
+    :param Cm: Pitching moment Coefficient
+    :type Cm: float
+    :param Cn: Yawing moment Coefficient
+    :type Cn: float
+    """
+    def __init__(self, Cl: float, Cm: float, Cn: float):
+        self.Cl = Cl
+        self.Cm = Cm
+        self.Cn = Cn
+
+    def __repr__(self):
+        return f"MomentCoefficients(Cl={self.Cl}, Cm={self.Cm}, Cn={self.Cn})"
+
+
 class Coefficients:
-    forces: dict
-    moments: dict
-    cl_distribution: dict
+    """Class that contains force and moment coefficients, and Cl distribution for a surface
+    or wing pool
+
+    In case of global coefficients, cl_distribution will be an empty dictionary
+
+    :param force_coefficients: Sequence of aerodynamic force coefficients. Must follow order `(CD, CY, CL)`
+    :type force_coefficients: Sequence
+    :param moment_coefficients: Sequence of aerodynamic force coefficients. Must follow order `(Cl, Cm, Cn)`
+    :type moment_coefficients: Sequence
+    :param cl_distribution: Distribution of section lift coefficients for a wing_pool
+    :type cl_distribution: dict
+    """
+    def __init__(self, force_coefficients, moment_coefficients, cl_distribution):
+        self.forces = ForceCoefficients(*force_coefficients)
+        self.moments = MomentCoefficients(*moment_coefficients)
+        self.cl_distribution = cl_distribution
+
+    def __repr__(self):
+        return f"Coefficients(forces={self.forces}, moments={self.moments}, cl_distribution={self.cl_distribution})"
+
 
 @dataclass
 class ProcessedSimulationResults:
+    """Container class returned by `PostProcessing.get_coefficients`. 
+    
+    It returns simulation_result, global_coefficients and surface_coefficients for a given angle of attack
+
+    :param simulation_result: Simulation results
+    :type simulation_result: SimulationResult
+    :param global_coefficients: Total aerodynamic coefficients of the wing pool
+    :type global_coefficients: Coefficients
+    :param surface_coefficients: Individual aerodynamic coefficients of the wing pool
+    :type surface_coefficients: dict[str, Coefficients]
+    """
     simulation_result: SimulationResult
     global_coefficients: Coefficients
     surface_coefficients: dict[str, Coefficients]
 
+
 class PostProcessing:
     @classmethod
-    def _build_nan_results(cls, simulation_result: SimulationResult, wing_pool: WingPool):
+    def _build_nan_results(cls, simulation_result: SimulationResult, wing_pool: WingPool) -> ProcessedSimulationResults:
+        """Method that returns `np.nan` for everything when `SimulationResult.convergence_check == False`
+
+        :returns: `ProcessedSimulationResults`, but with `np.nan` as values
+        """
         nan_coefficients = lambda N: Coefficients(
-            forces=np.array((np.nan, np.nan, np.nan)),
-            moments=np.array((np.nan, np.nan, np.nan)),
-            cl_distribution=np.full(N, np.nan)
+            force_coefficients=np.array((np.nan, np.nan, np.nan)),
+            moment_coefficients=np.array((np.nan, np.nan, np.nan)),
+            cl_distribution=np.full(N, np.nan),
         )
         global_coefficients = {}
         surface_coefficients = {}
         for wing in wing_pool.pool:
-            if "_mirrored" in wing.surface_name: continue
+            if "_mirrored" in wing.surface_name:
+                continue
             surface_coefficients[wing.surface_name] = nan_coefficients(wing.N_panels)
         global_coefficients = nan_coefficients(sum([wing.N_panels for wing in wing_pool.pool]) // 2)
         return ProcessedSimulationResults(simulation_result, global_coefficients, surface_coefficients)
@@ -42,8 +136,26 @@ class PostProcessing:
         wing_pool: WingPool,
         simulation_results: List[SimulationResult],
         S_ref: Optional[float] = None,
-        c_ref: Optional[float] = None
+        c_ref: Optional[float] = None,
     ) -> List[ProcessedSimulationResults]:
+        """Main method for processing simulation results and obtaining aerodynamic coefficients
+
+        - In case of angles that did not converge, will return `ProcessedSimulationResults`
+        with `np.nan` results only
+
+        :param wing_pool: System of surfaces used in simulation
+        :type wing_pool: WingPool
+        :param simulation_results: Results of simulation given by `Simulation.run`
+        :type simulation_results: List[SimulationResult]
+        :param S_ref: Reference surface value
+        :type S_ref: Optional[float]
+        :param c_ref: Reference chord value
+        :type c_ref: Optional[float]
+
+        :returns: A list of `ProcessedSimulationResults`, containing
+            global coefficients, surface coefficients and Cl distribution for each
+            angle of attack simulated
+        """
         if not S_ref:
             S_ref = wing_pool.S_ref
         if not c_ref:
@@ -61,7 +173,7 @@ class PostProcessing:
             for wing_i in wing_pool.pool:
                 CF = np.zeros(3)
                 CM = np.zeros(3)
-                Cl_distr = np.zeros(wing_i.N_panels)
+                cl_distribution = np.zeros(wing_i.N_panels)
 
                 wing_freestreams_velocities = wing_pool.system_freestream_velocities[result.alpha][wing_i.surface_name]
                 ref_points_distr = wing_pool.system_moment_ref[wing_i.surface_name]
@@ -70,208 +182,128 @@ class PostProcessing:
                     aux_cf = np.zeros(3)
 
                     airfoil_coefficients = get_linear_data_and_clmax(
-                        wing_i.cp_airfoils[i],
-                        wing_i.cp_reynolds[i],
-                        wing_i.airfoil_data
+                        wing_i.cp_airfoils[i], wing_i.cp_reynolds[i], wing_i.airfoil_data, show_logs=False
                     )
                     cm_i = airfoil_coefficients["cm0"]
-                    Cl_distr[i] = 2 * G_i[i]
+                    cl_distribution[i] = 2 * G_i[i]
                     for wing_j in wing_pool.pool:
                         G_j = G_dict[wing_j.surface_name]
-                        v_ij_distr = wing_pool.system_induced_velocities[result.alpha][wing_i.surface_name][wing_j.surface_name]
+                        v_ij_distr = wing_pool.system_induced_velocities[result.alpha][wing_i.surface_name][
+                            wing_j.surface_name
+                        ]
                         for j, _ in enumerate(wing_j.collocation_points):
                             v_ij = v_ij_distr[i][j]
                             aux_cf += G_j[j] * v_ij
                     aux_cf = (aux_cf + wing_freestreams_velocities[i]) * G_i[i]
                     CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
-                    CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
+                    CM += (
+                        (
+                            2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i]))
+                            - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]
+                        )
+                        * wing_i.cp_areas[i]
+                        / (S_ref * c_ref)
+                    )
 
                 # Rotate force coefficients to stability axis
                 alpha_rad = result.alpha * np.pi / 180
                 rotation_matrix = np.array(
-                    [[np.cos(alpha_rad), 0, np.sin(alpha_rad)],
-                    [0, 1, 0],
-                    [-1*np.sin(alpha_rad), 0, np.cos(alpha_rad)]]
+                    [
+                        [np.cos(alpha_rad), 0, np.sin(alpha_rad)],
+                        [0, 1, 0],
+                        [-1 * np.sin(alpha_rad), 0, np.cos(alpha_rad)],
+                    ]
                 )
                 CF = np.matmul(rotation_matrix, CF)
-                surface_coefficients[wing_i.surface_name] = Coefficients(
-                    forces=CF, moments=CM, cl_distribution=Cl_distr
-                )
+                surface_coefficients[wing_i.surface_name] = Coefficients(CF, CM, cl_distribution)
 
             CF_global = np.zeros(3)
             CM_global = np.zeros(3)
             for _, coefficients in surface_coefficients.items():
-                CF_global += coefficients.forces
-                CM_global += coefficients.moments
+                CF_global += np.array([coefficients.forces.CD, coefficients.forces.CY, coefficients.forces.CL])
+                CM_global += np.array([coefficients.moments.Cl, coefficients.moments.Cm, coefficients.moments.Cn])
             global_coefficients = Coefficients(CF_global, CM_global, {})
-            processed_result = ProcessedSimulationResults(result,global_coefficients,surface_coefficients)
+            processed_result = ProcessedSimulationResults(result, global_coefficients, surface_coefficients)
             processed_simulation_results.append(processed_result)
         return processed_simulation_results
+    
+    @classmethod
+    def get_aerodynamic_center(
+        cls,
+        original_wing_pool: WingPool,
+        simulation_results: list[SimulationResult],
+        S_ref: Optional[float] = None,
+        c_ref: Optional[float] = None,
+        max_iter: int = 100,
+        residual: float = 1e-6
+    ) -> AerodynamicCenter:
+        """Tries to find aerodynamic center of a wing pool by using binary search method.
 
-    def get_wing_coefficients(self, wing_pool: WingPool, G_dict: dict[list], alpha_index: int, S_ref: float, c_ref: float) -> dict:
-        wing_coefficients = {}
+        - This methods takes a list of `SimulationResult` and calculates the pitching coefficient moments (Cm)
+        - It then fits a linear equation using `np.polyfit([angles_of_attack], [Cm_values], 1)`
+            - Checks if `Cm_alpha < residual`
+        - Wing pool is copied in order to avoid changing original object
 
-        v_inf = wing_pool.flight_condition.v_inf_list[alpha_index]
-        aoa = wing_pool.flight_condition.angles_of_attack[alpha_index]
-        aoa_rad = aoa * np.pi / 180
+        Aerodynamic center is defined as the point in a wing (or system of wings)
+        where the pitching moment coefficient does not vary with angle of attack
 
-        CF_distr = np.zeros((wing_pool.total_panels, 3))
-        CM_distr = np.zeros((wing_pool.total_panels, 3))
-        i_glob = 0
-        Cl_distr_dict = {}
-        for wing_i in wing_pool.pool:
-            CF = np.zeros(3)
-            CM = np.zeros(3)
+        :param original_wing_pool: Input Wing Pool
+        :type original_wing_pool: WingPool
+        :param simulation_results: List of simulation results 
+        :type simulation_results: list[SimulationResult]
+        :param S_ref: Reference surface value
+        :type S_ref: Optional[float]
+        :param c_ref: Reference chord value
+        :type c_ref: Optional[float]
+        :param max_iter: Max number of iterations used in binary search
+        :type max_iter: int
+        :param residual: Stopping criteria of Cm alpha used in binary search
+        :type residual: float
 
-            ref_points_distr = wing_pool.system_moment_ref[wing_i.surface_name]
-            Cl_distr = np.zeros(wing_i.N_panels)
-            G_i = G_dict[wing_i.surface_name]
-            for i, _ in enumerate(wing_i.collocation_points):
-                aux_cf = np.zeros(3)
-
-                airfoil_coefficients = get_linear_data_and_clmax(
-                    wing_i.cp_airfoils[i],
-                    wing_i.cp_reynolds[i],
-                    wing_i.airfoil_data
-                )
-                cm_i = airfoil_coefficients["cm0"]
-                Cl_distr[i] = 2 * G_i[i]
-                for wing_j in wing_pool.pool:
-                    G_j = G_dict[wing_j.surface_name]
-                    v_ij_distr = wing_pool.ind_velocities_list[alpha_index][wing_i.surface_name][wing_j.surface_name]
-                    for j, _ in enumerate(wing_j.collocation_points):
-                        v_ij = v_ij_distr[i][j]
-                        aux_cf += G_j[j] * v_ij
-                aux_cf = (aux_cf + v_inf) * G_i[i]
-                CF += 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
-                CF_distr[i_glob,:] = 2 * np.cross(aux_cf, wing_i.cp_dsl[i]) * wing_i.cp_areas[i] / S_ref
-                CM += (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
-                CM_distr[i_glob,:] = (2 * np.cross(ref_points_distr[i], np.cross(aux_cf, wing_i.cp_dsl[i])) - cm_i * wing_i.cp_macs[i] * wing_i.u_s[i]) * wing_i.cp_areas[i] / ( S_ref * c_ref )
-                i_glob += 1
-
-            rotation_matrix = np.array(
-                [[np.cos(aoa_rad), 0, np.sin(aoa_rad)],
-                [0, 1, 0],
-                [-1*np.sin(aoa_rad), 0, np.cos(aoa_rad)]]
-            )
-            CF = np.matmul(rotation_matrix, CF)
-            Cl_distr_dict[wing_i.surface_name] = Cl_distr
-            wing_coefficients[wing_i.surface_name] = {
-                "CF": CF,
-                "CM": CM,
-                "Cl_distr": Cl_distr_dict
-            }
-
-        for wing_i in wing_pool.wing_list:
-            # Somar as parcelas das asas (wing + wing_mirrored) e remover chaves de asas espelhadas
-            wing_coefficients[wing_i.surface_name]["CF"] += wing_coefficients[wing_i.surface_name+"_mirrored"]["CF"]
-            wing_coefficients[wing_i.surface_name]["CM"] += wing_coefficients[wing_i.surface_name+"_mirrored"]["CM"]
-            wing_coefficients.pop(wing_i.surface_name+"_mirrored")
-
-        return wing_coefficients
-
-    def get_CL_max_linear(
-        self,
-        wing_pool: WingPool,
-        G_list: list[dict],
-        S_ref: float,
-        aoa_range: Union[tuple[float], None] = None,
-    ) -> float:
+        :returns AerodynamicCenter:
         """
-        Obtenção do CL máximo de uma asa (ou sistema de asas) através do método da seção crítica
-        Para cada ângulo é verificado o Cl de cada seção e comparado com o Clmax do perfil no seu respectivo reynolds
-        O CLmax é alcançado quando alguma seção atingir o Clmax do seu perfil no seu respectivo reynolds
-        O input alpha_index_range pode ser utilizado para procurar numa faixa de angulos específica
-        por exemplo, se aoa_list [1, 3, 5, 7, 9, 11, 13, 15, 19]
-        passando-se aoa_range = [13, 19] será iterado somente entre os ângulos 13 e 19
-        """
-        c_ref = 1 # O valor de c_ref pode ser qualquer um aqui porque nao vamos pegar coeficiente de momento
+        wing_pool = deepcopy(original_wing_pool) # Make a copy to avoid updating original object
+        if np.any(wing_pool.flight_condition.angular_velocity != 0):
+            print("Warning: trying to find aerodynamic center with non-zero angular rates may result in inconsistent values")
+        
+        if not S_ref:
+            S_ref = wing_pool.S_ref
+        if not c_ref:
+            c_ref = wing_pool.c_ref
 
-        if aoa_range == None:
-            aoa_start = wing_pool.flight_condition.angles_of_attack[0]
-            aoa_end = wing_pool.flight_condition.angles_of_attack[-1]
-        else:
-            aoa_start = aoa_range[0]
-            aoa_end = aoa_range[-1]
+        ac_min = min([wing.x_pos for wing in wing_pool.pool])
+        ac_max = max([wing.x_pos for wing in wing_pool.pool]+[c_ref])
+        ac_start = (ac_min + ac_max) / 2
 
-        CLmax_dict = {}
-        for wing_i in wing_pool.wing_list:
-            CLmax_check = False
-            for aoa_idx, aoa in enumerate(wing_pool.flight_condition.angles_of_attack):
-                if aoa_start <= aoa <= aoa_end and not CLmax_check:
-                    G_dict = G_list[aoa_idx]
-                    convergence_check = self.check_for_nan(G_dict)
-                    if not convergence_check: continue
-                    G_i = G_dict[wing_i.surface_name]
-                    for i, _ in enumerate(wing_i.collocation_points):
-                        lookup_data = get_linear_data_and_clmax(
-                            wing_i.cp_airfoils[i],
-                            wing_i.cp_reynolds[i],
-                            wing_i.airfoil_data
-                        )
-                        Clmax_i = lookup_data["clmax"]
-                        if 2 * G_i[i] > Clmax_i:
-                            CLmax_check = True
-                            aoa_max_idx = aoa_idx - 1 if aoa_idx > 0 else 0
-            if not CLmax_check:
-                aoa_max_idx = -1 if aoa_range == None else wing_pool.flight_condition.angles_of_attack.index(aoa_range[-1])
-            G_dict = G_list[aoa_max_idx]
-            aoa_max = wing_pool.flight_condition.angles_of_attack[aoa_max_idx]
-            coefficients = self.get_wing_coefficients(wing_pool, G_dict, aoa_max_idx, S_ref, c_ref)
-            CLmax_dict[wing_i.surface_name] = {
-                "CLmax": coefficients[wing_i.surface_name]["CF"][2],
-                "aoa_max": aoa_max,
-                "aoa_max_idx": aoa_max_idx
-            }
-
-        return CLmax_dict
-
-    def get_aerodynamic_center(self, wing_pool: WingPool, G_list: list[dict], aoa_1: float, aoa_2: float, S_ref: float, c_ref: float) -> dict:
-        aoa_list = wing_pool.flight_condition.angles_of_attack
-        if aoa_1 not in aoa_list or aoa_2 not in aoa_list:
-            raise Exception(f"Ambos aoa_1 e aoa_2 precisam estar dentro da lista de ângulos de ataque")
-
-        aoa_1_idx = aoa_list.index(aoa_1)
-        aoa_2_idx = aoa_list.index(aoa_2)
-
-        ac = 0.25*c_ref
-        ac_min = 0.1*c_ref
-        ac_max = 1.5*c_ref
-        max_iter = 100
-
-        self.ref_point = [ac, 0, 0]
+        ac = ac_start
+        wing_pool.moment_ref = [ac, 0, 0]
         ac_check = False
 
         i = 1
+        alpha_values = [result.alpha for result in simulation_results]
         while not ac_check:
             if i > max_iter:
-                print("Limite máximo de iterações atingido")
+                print("Reached max iteration number")
                 break
 
-            self.build_reference_points_dict(wing_pool)
+            coefficients = cls.get_coefficients(wing_pool, simulation_results, S_ref, c_ref)
 
-            coefs_1 = self.get_global_coefficients(wing_pool, G_list[0], alpha_index=aoa_1_idx, S_ref=S_ref, c_ref=c_ref)
-            Cm_1 = coefs_1["CM"][1]
-            coefs_2 = self.get_global_coefficients(wing_pool, G_list[1], alpha_index=aoa_2_idx, S_ref=S_ref, c_ref=c_ref)
-            Cm_2 = coefs_2["CM"][1]
+            CM_values = [coef.global_coefficients.moments.Cm for coef in coefficients]
+            CM_poly = np.polyfit(alpha_values, CM_values, 1)
 
-            Cm_alpha = (Cm_2 - Cm_1) / (aoa_2 - aoa_1)
-            if abs(Cm_alpha) <= 1e-6 or i == max_iter:
-                Cm_ac = Cm_1
+            Cm_alpha = CM_poly[0] # get angular coefficient, or A in y = Ax + b
+            if abs(Cm_alpha) <= residual or i == max_iter:
+                Cm_ac = CM_poly[1]
                 ac_check = True
                 x_ac = ac / c_ref
             else:
                 if Cm_alpha < 0:
                     ac_min = ac
                     ac = (ac + ac_max) / 2
-                    self.ref_point = [ac, 0, 0]
                 else:
                     ac_max = ac
                     ac = (ac_min + ac_max) / 2
-                    self.ref_point = [ac, 0, 0]
+                wing_pool.moment_ref = [ac, 0, 0]
             i += 1
 
-        return {
-            "x_ac": x_ac,
-            "Cm_ac": Cm_ac
-        }
+        return AerodynamicCenter(x_ac, Cm_ac, Cm_alpha, i)
