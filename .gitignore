@@ -9,4 +9,4 @@ todo.md
 *.egg-info
 *.ini
 dist
-validacao*
+build/
