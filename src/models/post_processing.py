@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -7,6 +8,15 @@ from src.models.simulation import SimulationResult
 from src.models.wingpool import WingPool
 from src.utils.lookup import get_linear_data_and_clmax
 
+class AerodynamicCenter:
+    def __init__(self, x_ac: float, Cm_ac: float, Cm_alpha: float, n_iter: int):
+        self.x_ac = x_ac
+        self.Cm_ac = Cm_ac
+        self.Cm_alpha = Cm_alpha
+        self.n_iter = n_iter
+
+    def __repr__(self):
+        return f"AerodynamicCenter(x_ac={self.x_ac}, Cm_ac={self.Cm_ac}, Cm_alpha={self.Cm_alpha}, n_iter={self.n_iter})"
 
 class ForceCoefficients:
     def __init__(self, CD: float, CY: float, CL: float):
@@ -267,42 +277,48 @@ class PostProcessing:
             }
 
         return CLmax_dict
-
+    
+    @classmethod
     def get_aerodynamic_center(
-        self,
-        wing_pool: WingPool,
+        cls,
+        original_wing_pool: WingPool,
         simulation_results: list[SimulationResult],
-        S_ref: Optional[float],
-        c_ref: Optional[float],
+        S_ref: Optional[float] = None,
+        c_ref: Optional[float] = None,
+        max_iter: int = 100,
+        residual: float = 1e-6
     ) -> dict:
+        wing_pool = deepcopy(original_wing_pool) # Make a copy to avoid updating original object
+        if np.any(wing_pool.flight_condition.angular_velocity != 0):
+            print("Warning: trying to find aerodynamic center with non-zero angular rates may result in inconsistent values")
+        
         if not S_ref:
             S_ref = wing_pool.S_ref
         if not c_ref:
             c_ref = wing_pool.c_ref
-        aoa_list = wing_pool.flight_condition.angles_of_attack
 
-        ac = 0.25 * c_ref
-        ac_min = 0.1 * c_ref
-        ac_max = 1.5 * c_ref
-        max_iter = 100
+        ac_min = min([wing.x_pos for wing in wing_pool.pool])
+        ac_max = max([wing.x_pos for wing in wing_pool.pool]+[c_ref])
+        ac_start = (ac_min + ac_max) / 2
 
+        ac = ac_start
         wing_pool.moment_ref = [ac, 0, 0]
         ac_check = False
 
         i = 1
-        alpha_values = [alpha for alpha in simulation_results.alpha]
+        alpha_values = [result.alpha for result in simulation_results]
         while not ac_check:
             if i > max_iter:
                 print("Reached max iteration number")
                 break
 
-            coefficients = self.get_coefficients(wing_pool, simulation_results, S_ref, c_ref)
+            coefficients = cls.get_coefficients(wing_pool, simulation_results, S_ref, c_ref)
 
-            CM_values = [coef.surface_coefficients.moments.Cm for coef in coefficients]
+            CM_values = [coef.global_coefficients.moments.Cm for coef in coefficients]
             CM_poly = np.polyfit(alpha_values, CM_values, 1)
 
-            Cm_alpha = CM_poly[0]
-            if abs(Cm_alpha) <= 1e-6 or i == max_iter:
+            Cm_alpha = CM_poly[0] # get angular coefficient, or A in y = Ax + b
+            if abs(Cm_alpha) <= residual or i == max_iter:
                 Cm_ac = CM_poly[1]
                 ac_check = True
                 x_ac = ac / c_ref
@@ -316,4 +332,4 @@ class PostProcessing:
                 wing_pool.moment_ref = [ac, 0, 0]
             i += 1
 
-        return {"x_ac": x_ac, "Cm_ac": Cm_ac}
+        return AerodynamicCenter(x_ac, Cm_ac, Cm_alpha, i)
