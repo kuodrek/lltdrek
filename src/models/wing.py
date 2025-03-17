@@ -213,3 +213,23 @@ class Wing:
         for airfoil, airfoil_data in airfoils_data_dict.items():
             if airfoil in unique_airfoils:
                 self.airfoil_data[airfoil] = airfoil_data
+
+        self.check_reynolds_bounds()
+
+    def check_reynolds_bounds(self) -> None:
+        min_cp_reynolds = float(min(self.cp_reynolds))
+        max_cp_reynolds = float(max(self.cp_reynolds))
+
+        reynolds_list = []
+        for _, re_data in self.airfoil_data.items():
+            for re, _ in re_data.items():
+                reynolds_list.append(float(re))
+
+        min_airfoil_reynolds = min(reynolds_list)
+        max_airfoil_reynolds = max(reynolds_list)
+        
+        if min_cp_reynolds < min_airfoil_reynolds or max_cp_reynolds > max_airfoil_reynolds:
+            print("Warning: Detected reynolds that is out of airfoil data bounds. Results may be innacurate")
+        
+        return None
+        
