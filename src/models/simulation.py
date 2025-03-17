@@ -89,6 +89,7 @@ class Simulation:
                     alpha=alpha,
                     wing_pool=wing_pool,
                     matrix_dim=matrix_dim,
+                    show_logs=self.show_logs
                 )
                 G_dict = wing_pool.map_solution(G)
 
@@ -105,7 +106,8 @@ class Simulation:
                     G_dict,
                     wing_pool,
                     matrix_dim,
-                    self.linear_check
+                    self.linear_check,
+                    self.show_logs
                 )
                 delta_G = calculate_corrector_equation(
                     R_array,
@@ -115,7 +117,8 @@ class Simulation:
                     alpha,
                     wing_pool,
                     matrix_dim,
-                    self.linear_check
+                    self.linear_check,
+                    self.show_logs
                 )
                 if iteration > self.max_iter:
                     G_solution = np.ones(matrix_dim) * np.nan
