@@ -3,11 +3,11 @@ from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
-from src.models.exceptions import NonUniqueWingsException
-from src.models.flight_condition import FlightCondition
-from src.models.types import AngleOfAttack, DVSArray, DVSMap
-from src.models.wing import Wing
-from src.utils.velocity import get_induced_velocity_distribution
+from lltdrek.models.exceptions import NonUniqueWingsException
+from lltdrek.models.flight_condition import FlightCondition
+from lltdrek.models.types import AngleOfAttack, DVSArray, DVSMap
+from lltdrek.models.wing import Wing
+from lltdrek.utils.velocity import get_induced_velocity_distribution
 
 """
 ind_velocities_list = [ind_velocities_dict_1, ind_velocities_dict_2, ...]

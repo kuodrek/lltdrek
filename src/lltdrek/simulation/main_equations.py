@@ -1,9 +1,9 @@
 from typing import Dict
 import numpy as np
 import numpy.linalg as npla
-from src.models.wingpool import WingPool
-from src.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
-from src.models.types import AngleOfAttack
+from lltdrek.models.wingpool import WingPool
+from lltdrek.utils.lookup import get_airfoil_data, get_linear_data_and_clmax
+from lltdrek.models.types import AngleOfAttack
 
 
 def calculate_main_equation_simplified(

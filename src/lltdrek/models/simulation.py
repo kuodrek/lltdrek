@@ -1,13 +1,13 @@
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
-from src.models.wingpool import WingPool
-from src.simulation.main_equations import (
+from lltdrek.models.wingpool import WingPool
+from lltdrek.simulation.main_equations import (
     calculate_corrector_equation,
     calculate_main_equation,
     calculate_main_equation_simplified
 )
-from src.models.types import AngleOfAttack, DVSMap
+from lltdrek.models.types import AngleOfAttack, DVSMap
 
 class SimulationModes(Enum):
     """Ways of running a simulation

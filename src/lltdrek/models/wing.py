@@ -2,8 +2,8 @@ import numpy as np
 import math
 from typing import List, Union, Optional
 from dataclasses import dataclass, field
-from src.models.flight_condition import FlightCondition
-import src.utils.geometry as geo
+from lltdrek.models.flight_condition import FlightCondition
+import lltdrek.utils.geometry as geo
 
 
 @dataclass(repr=False, eq=False, match_args=False, slots=True)
