@@ -4,9 +4,9 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-from src.models.simulation import SimulationResult
-from src.models.wingpool import WingPool
-from src.utils.lookup import get_linear_data_and_clmax
+from lltdrek.models.simulation import SimulationResult
+from lltdrek.models.wingpool import WingPool
+from lltdrek.utils.lookup import get_linear_data_and_clmax
 
 class AerodynamicCenter:
     """Container class that contains results for `PostProcessing.get_aerodynamic_center` method

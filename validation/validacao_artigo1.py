@@ -1,12 +1,11 @@
 import numpy as np
 from validacao_aoas import aoa_list_1
-from src.models.wing import Wing
-from src.models.flight_condition import FlightCondition
-from src.models.wingpool import WingPool
-from src.models.simulation import Simulation
-from src.models.post_processing import PostProcessing
-from src.models.enums import DistributionTypes, SimulationModes
-from src.utils import data
+from lltdrek.models.wing import Wing
+from lltdrek.models.flight_condition import FlightCondition
+from lltdrek.models.wingpool import WingPool
+from lltdrek.models.simulation import Simulation
+from lltdrek.models.post_processing import PostProcessing
+from lltdrek.utils import data
 
 
 airfoils_data_dict, airfoils_dat_dict = data.load_folder('airfoils_test', -2, 6)

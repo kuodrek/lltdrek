@@ -15,6 +15,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## 1.2.0
+
+### Changed
+- Update directory structure
+- Update code dependencies
+
 ## 1.1.0
 
 ### Added
