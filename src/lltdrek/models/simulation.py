@@ -42,18 +42,27 @@ class SimulationResult:
         return f"""SimulationResult(alpha={self.alpha}, convergence_check={self.convergence_check})"""
 
 
-@dataclass(repr=False, eq=False, match_args=False, slots=True)
 class Simulation:
     simulation_modes = [
         e.value for e in SimulationModes
     ]  # Allowed values for simulation_modes
 
-    damping_factor: float = 0.7
-    max_iter: int = 150
-    max_residual: float = 1e-3
-    linear_check: bool = False
-    show_logs: bool = True
-    simulation_mode: str = SimulationModes.LATEST_SOLUTION.value
+    def __init__(
+        self,
+        damping_factor: float = 0.7,
+        max_iter: int = 150,
+        max_residual: float = 1e-3,
+        linear_check: bool = False,
+        show_logs: bool = True,
+        simulation_mode: str = SimulationModes.LATEST_SOLUTION.value
+    ):
+        self.damping_factor = damping_factor
+        self.max_iter = max_iter
+        self.max_residual = max_residual
+        self.linear_check = linear_check
+        self.show_logs = show_logs
+        self.simulation_mode = simulation_mode
+
 
     def __post_init__(self):
         if self.simulation_mode not in self.simulation_modes:
