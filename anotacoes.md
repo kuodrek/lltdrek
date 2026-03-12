@@ -1,0 +1,8 @@
+-> Talvez a asa e quem faz a asa deveriam ser objetos diferentes
+-> Buscar informacoes como Cl pra um dado reynolds e alfa deveria ser um metodo dentro de wingpool
+-> Fazer um multiget seria interessante (para buscar varios alfas ao mesmo tempo)
+-> wingpool
+    -> entrada: lista de asas; flight condition
+    -> Dados de perfil deveriam estar aqui. Uma asa nao deveria ter essa informacao
+-> Banco de dados de perfil deveria ser um objeto a parte.
+    -> Para um dado wingpool, deveria ter uma validacao se o banco de dados é capaz de suprir informacao suficiente antes de rodar
