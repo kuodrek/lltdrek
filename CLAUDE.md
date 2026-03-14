@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `lltdrek` is a Python library implementing a **nonlinear Lifting Line Theory (LLT)** solver for aerodynamic analysis of wing systems. It simulates lift, drag, and moment coefficients across angles of attack, supporting multi-surface configurations (e.g., wing + tail), ground effect, and angular velocity (damping derivatives).
 
+## Current branch: `feature/system-redesign`
+
+The codebase is being redesigned. **All new work happens in `src/new/`.** The legacy code in
+`src/lltdrek/` is the reference for porting — do not extend it. After migration is complete,
+`src/lltdrek/` will be removed and this file updated.
+
 ## Commands
 
 **Install for development:**
@@ -30,57 +36,87 @@ pre-commit run --all-files
 - Import sorter: `isort`
 - Linter: `flake8` with `--max-line-length=120 --ignore=E731`
 
-## Architecture
+---
 
-### Core workflow
+## Redesign: `src/new/`
 
-The typical usage pattern (see `example.py`):
+### Goals (from `anotacoes.md`)
 
-1. **Load airfoil data** with `load_folder(folder)` — reads `.txt` (Cl polar tables) and `.dat` (geometry) files from a directory.
-2. **Define wing geometry** with `Wing(...)` — then call `wing.generate_mesh()` and `wing.setup_airfoil_data(flight_condition, airfoils_data)`.
-3. **Define flight conditions** with `FlightCondition(V_inf, nu, rho, angles_of_attack, h, ...)`.
-4. **Create a `WingPool`** from a list of wings + flight condition. This automatically mirrors each wing (y-symmetry) and pre-computes all induced velocity matrices.
-5. **Run simulation** with `Simulation(...).run(wing_pool)` → returns `list[SimulationResult]`.
-6. **Post-process** with `PostProcessing.get_coefficients(wing_pool, results)` → returns `list[ProcessedSimulationResults]` containing global and per-surface `Coefficients`.
+- Wing and the object that assembles wings are separate concerns
+- `AirfoilDatabase` is a standalone object — `Wing` does not own airfoil data
+- `WingPool` owns airfoil data attachment and must validate database coverage before running
+- `Simulation` responsibilities are split across focused `SimulationRunner` subclasses (Strategy Pattern)
+- Velocity functions and data-loading functions still need to be refactored (pending)
 
-### Key classes
+### Design principles
+
+- **ABCs for all interfaces.** Concrete implementations are named with a suffix: `WingLLT`, `NonlinearLoopsRunner`, etc.
+- **Orthogonal parameters.** Each parameter on a class controls one independent axis of behavior. Do not combine axes into a single flat enum.
+- **Strategy Pattern for swappable implementations.** The user-facing class (e.g., `Simulation`) is a factory that selects and holds the right strategy.
+- **`WingPool` owns the assembly lifecycle.** Wings are passive geometry objects; they do not know about flight conditions or airfoil databases until `WingPool` attaches that data.
+
+### Current structure
+
+```
+src/new/
+├── aerodynamics/
+│   └── airfoil_database.py     # AirfoilDatabase ABC
+├── geometry/
+│   ├── wing.py                 # Wing ABC (lifecycle + properties)
+│   └── wing_llt.py             # WingLLT — concrete LLT implementation
+├── system/
+│   └── wing_pool.py            # WingPool — assembles wings + flight condition + airfoil DB
+└── solver/
+    ├── simulation.py           # Simulation — user-facing factory (equations, implementation, warm_start)
+    ├── simulation_runner.py    # SimulationRunner ABC + SimulationResult dataclass
+    ├── linear_runner.py        # LinearRunner — one-shot linear solve (stub)
+    ├── nonlinear_loops_runner.py  # NonlinearLoopsRunner — Newton-Raphson, for-loops (stub)
+    └── nonlinear_numpy_runner.py  # NonlinearNumpyRunner — Newton-Raphson, vectorized (stub)
+```
+
+### `WingPool` — `src/new/system/wing_pool.py`
+
+Takes `wings: List[Wing]`, `flight_condition: FlightCondition`, `airfoil_db: AirfoilDatabase`.
+In `__init__`, calls `wing.generate_mesh()` and `wing._setup_airfoil_data(flight_condition, airfoil_db)` for each wing.
+
+### `Simulation` — `src/new/solver/simulation.py`
+
+Three orthogonal params select the runner internally:
+
+| `equations` | `implementation` | Runner selected |
+|---|---|---|
+| `"linear"` | (ignored) | `LinearRunner` |
+| `"nonlinear"` | `"loops"` | `NonlinearLoopsRunner` |
+| `"nonlinear"` | `"numpy"` | `NonlinearNumpyRunner` |
+
+`warm_start: bool` — nonlinear only; uses linear solution as initial G per alpha.
+
+### Still pending
+
+- `AirfoilDatabase` concrete implementation (port from `load_folder` + polar lookup in legacy)
+- `FlightCondition` in `src/new/aerodynamics/`
+- Velocity utility functions (port from `src/lltdrek/utils/`)
+- `NonlinearLoopsRunner.run()` implementation (port from `src/lltdrek/models/simulation.py`)
+- `NonlinearNumpyRunner.run()` implementation (new, vectorized)
+- `PostProcessing` equivalent
+- Wing mirroring logic in `WingPool`
+- Airfoil database validation in `WingPool`
+
+---
+
+## Legacy reference: `src/lltdrek/`
+
+Read-only. Used as the source of truth for porting logic.
 
 | Class | Location | Role |
 |---|---|---|
-| `Wing` | `models/wing.py` | Geometry + mesh. Stores collocation points, vertice points, panel normals (`u_n`), chord vectors (`u_a`), and span vectors (`u_s`). |
-| `FlightCondition` | `models/flight_condition.py` | Atmospheric + flight state (V_inf, nu, rho, AOAs, angular rates, ground effect). |
-| `WingPool` | `models/wingpool.py` | Assembles the full system. Builds mirrored wings, pre-computes `system_induced_velocities` and `system_freestream_velocities` for every AOA. |
-| `Simulation` | `models/simulation.py` | Newton-Raphson iterator. Solves for dimensionless vortex strength `G` per panel. |
-| `PostProcessing` | `models/post_processing.py` | Converts `G` solutions to aerodynamic force/moment coefficients. Also has `get_aerodynamic_center()` via binary search. |
+| `Wing` | `models/wing.py` | Monolithic geometry + airfoil data |
+| `FlightCondition` | `models/flight_condition.py` | V_inf, nu, rho, AOAs, angular rates, ground effect |
+| `WingPool` | `models/wingpool.py` | Mirrors wings, pre-computes induced/freestream velocity matrices |
+| `Simulation` | `models/simulation.py` | Newton-Raphson loop (to be split into runners) |
+| `PostProcessing` | `models/post_processing.py` | G → force/moment coefficients |
 
-### Simulation solver details (`simulation/main_equations.py`)
-
-The nonlinear solve uses Newton-Raphson iteration:
-- `calculate_main_equation` → residual vector `R(G)`
-- `calculate_corrector_equation` → Jacobian solve `[J]ΔG = -R`
-- `calculate_main_equation_simplified` → linearized version (used as an initial guess when `simulation_mode="linear_first"`)
-
-`SimulationModes.LINEAR_FIRST` solves the linear equations first per alpha to warm-start the nonlinear solver. `SimulationModes.LATEST_SOLUTION` reuses the previous alpha's solution.
-
-### WingPool internals
-
-- Each `Wing` in `wing_list` is automatically paired with a `_mirrored` copy (negated y-coordinates). Mirrored wings are skipped in the main residual loop but contribute induced velocities.
-- `system_induced_velocities[alpha][wing_i][wing_j]` is a 3D array indexed `[cp_i, cp_j, 3]` — the induced velocity at collocation point `i` due to panel `j` of `wing_j`.
-- `G_dict` maps surface name → 1D numpy array of vortex strengths (one per panel).
-
-### Airfoil data format (`.txt` files)
-
-Each `.txt` file contains polar data for one airfoil across multiple Reynolds numbers. Structure per Reynolds block:
-```
-reynolds,<Re_value>
-cm0,<value>
-<aoa>,<cl>
-<aoa>,<cl>
-...
-<blank line>
-```
-Linear coefficients (`cl_alpha`, `cl0`) are fitted via `np.polyfit` over a configurable AOA range (default 0–8°). Panels spanning two airfoils use linear interpolation weighted by spanwise position (`merge_parameter`).
-
-### Geometry utilities (`utils/geometry.py`)
-
-Panel distribution supports `"linear"` or `"cosine"` spanwise spacing. Euler angles (dihedral, twist, sweep) define the panel orientation matrices (`u_a`, `u_n`, `u_s`).
+Key equations in `src/lltdrek/simulation/main_equations.py`:
+- `calculate_main_equation` (line 47) → residual R(G)
+- `calculate_corrector_equation` (line 95) → Jacobian solve ΔG
+- `calculate_main_equation_simplified` (line 9) → linearized solve (warm-start or LinearRunner)
