@@ -3,6 +3,18 @@
 -> Fazer um multiget seria interessante (para buscar varios alfas ao mesmo tempo)
 -> wingpool
     -> entrada: lista de asas; flight condition
-    -> Dados de perfil deveriam estar aqui. Uma asa nao deveria ter essa informacao
--> Banco de dados de perfil deveria ser um objeto a parte.
+    -> Dados de perfil deveriam estar aqui. Uma asa nao deveria ter essa informacao **
+-> Banco de dados de perfil deveria ser um objeto a parte. [OK]
     -> Para um dado wingpool, deveria ter uma validacao se o banco de dados é capaz de suprir informacao suficiente antes de rodar
+
+-> Problemas
+    -> Quando é a hora de interpolar e quando não é?
+        -> Perfis defletidos não podem ser interpolados (ou deveriam ser minimamente interpolados)
+    -> wing.airfoil_data -> asa nao deveria ter informação do perfil. airfoil_db deveria **
+    -> isso vai precisar refatorar classe Wing e main equations
+    -> Classe Simulation possui muitas responsabilidades [Reworking]
+        -> Loop dos angulos de ataque
+        -> Loop da simulação
+        -> Inicialização do primeiro Chute (G)
+    -> Refatorar funções de carregar dados & lookup de dados
+    -> Refatorar funções de velocidade
