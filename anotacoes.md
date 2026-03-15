@@ -6,6 +6,18 @@
     -> Dados de perfil deveriam estar aqui. Uma asa nao deveria ter essa informacao **
 -> Banco de dados de perfil deveria ser um objeto a parte. [OK]
     -> Para um dado wingpool, deveria ter uma validacao se o banco de dados é capaz de suprir informacao suficiente antes de rodar
+-> Testes
+    -> `unit`:
+        -> 'espelhar' src
+        -> Testar componentes individuais (geometry, mesh, individual calculations)
+    -> `integration`:
+        -> Testar integração entre componentes
+        -> WingPool + Simulation: o que esperar?
+    -> `verification & validation (V&V)`
+        -> Validação experimental: comparar com artigos
+        -> Precisa fazer validação experimental com tudo?
+        -> Onde a "física" vive?
+
 
 -> Problemas
     -> Quando é a hora de interpolar e quando não é?
