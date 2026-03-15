@@ -3,15 +3,13 @@ from typing import Optional
 
 import numpy as np
 
-from new.aerodynamics.airfoil_database import AirfoilDatabase
-
 
 class Wing(ABC):
     """Interface for wing geometry implementations.
 
     Lifecycle:
-        1. Instantiate with geometry parameters — generate_mesh() is called automatically.
-        2. WingPool calls _setup_airfoil_data(flight_condition, airfoil_db) during assembly.
+        1. Instantiate with geometry parameters — concrete __init__ must call generate_mesh().
+        2. WingPool calls _apply_flight_condition(flight_condition) during assembly.
 
     All properties listed below are guaranteed to be available after the
     corresponding lifecycle method has been called.
@@ -32,11 +30,11 @@ class Wing(ABC):
         ...
 
     @abstractmethod
-    def _setup_airfoil_data(self, flight_condition, airfoil_db: AirfoilDatabase) -> None:
-        """Attach airfoil polar data to each panel.
+    def _apply_flight_condition(self, flight_condition) -> None:
+        """Assign per-panel airfoils and compute Reynolds numbers from the flight condition.
 
         Called by WingPool during assembly. After this call the following
-        properties are available: cp_reynolds, cp_airfoils, airfoil_data.
+        properties are available: cp_reynolds, cp_airfoils.
         """
         ...
 
@@ -197,12 +195,6 @@ class Wing(ABC):
     @abstractmethod
     def cp_airfoils(self) -> list:
         """Per-panel airfoil references with spanwise merge parameters."""
-        ...
-
-    @property
-    @abstractmethod
-    def airfoil_data(self) -> dict:
-        """Airfoil polar data dictionary keyed by airfoil name."""
         ...
 
     # -------------------------------------------------------------------------

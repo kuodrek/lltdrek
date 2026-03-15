@@ -4,7 +4,6 @@ from typing import List, Optional, Union
 import numpy as np
 
 import lltdrek.utils.geometry as geo
-from new.aerodynamics.airfoil_database import AirfoilDatabase
 from new.geometry.wing import Wing
 
 
@@ -72,7 +71,6 @@ class WingLLT(Wing):
         # Set after setup_airfoil_data()
         self._cp_reynolds: np.ndarray = None
         self._cp_airfoils: list = None
-        self._airfoil_data: dict = None
 
         # Set by WingPool when creating mirrored copies
         self._parent_wing: Optional[str] = None
@@ -201,10 +199,6 @@ class WingLLT(Wing):
     @property
     def cp_airfoils(self) -> list:
         return self._cp_airfoils
-
-    @property
-    def airfoil_data(self) -> dict:
-        return self._airfoil_data
 
     # -------------------------------------------------------------------------
     # Cross-wing references
@@ -339,8 +333,8 @@ class WingLLT(Wing):
         self._MAC = MAC / self._total_area
         self._AR = (2 * self._total_span) ** 2 / (2 * self._total_area)
 
-    def _setup_airfoil_data(self, flight_condition, airfoil_db: AirfoilDatabase) -> None:
-        """Attach airfoil polar data to each panel based on spanwise position."""
+    def _apply_flight_condition(self, flight_condition) -> None:
+        """Assign per-panel airfoils and compute Reynolds numbers from the flight condition."""
         self._cp_reynolds = np.zeros(self._N_panels)
         self._cp_airfoils = []
 
@@ -360,20 +354,3 @@ class WingLLT(Wing):
 
         for i, panel_chord in enumerate(self._cp_chords):
             self._cp_reynolds[i] = panel_chord * flight_condition.V_inf / flight_condition.nu
-
-        self._airfoil_data = {name: airfoil_db.get_polar(name) for name in set(self.airfoils)}
-
-        self._check_reynolds_bounds()
-
-    # -------------------------------------------------------------------------
-    # Private helpers
-    # -------------------------------------------------------------------------
-
-    def _check_reynolds_bounds(self) -> None:
-        min_cp_re = float(min(self._cp_reynolds))
-        max_cp_re = float(max(self._cp_reynolds))
-
-        reynolds_list = [float(re) for _, re_data in self._airfoil_data.items() for re in re_data]
-
-        if min_cp_re < min(reynolds_list) or max_cp_re > max(reynolds_list):
-            print("Warning: Detected reynolds that is out of airfoil data bounds. Results may be inaccurate.")
