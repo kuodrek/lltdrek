@@ -48,6 +48,10 @@ class Wing(ABC):
         """Unique identifier for this wing surface."""
         ...
 
+    @surface_name.setter
+    @abstractmethod
+    def surface_name(self, value: str) -> None: ...
+
     @property
     @abstractmethod
     def N_panels(self) -> int:

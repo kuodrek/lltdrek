@@ -88,6 +88,10 @@ class WingLLT(Wing):
     def surface_name(self) -> str:
         return self._surface_name
 
+    @surface_name.setter
+    def surface_name(self, value: str) -> None:
+        self._surface_name = value
+
     @property
     def N_panels(self) -> int:
         return self._N_panels
