@@ -1,7 +1,9 @@
-from typing import Union, Sequence
-from lltdrek.models.types import AngleOfAttack
-from lltdrek.models.exceptions import AlphaNotFoundException
+from typing import Sequence, Union
+
 import numpy as np
+
+from lltdrek.models.exceptions import AlphaNotFoundException
+from lltdrek.models.types import AngleOfAttack
 
 
 class FlightCondition:

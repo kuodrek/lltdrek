@@ -1,5 +1,5 @@
-from functools import wraps
 import time
+from functools import wraps
 
 
 def timeit(func):
@@ -9,6 +9,7 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f'Function {func.__name__} Took {total_time:.8f} seconds')
+        print(f"Function {func.__name__} Took {total_time:.8f} seconds")
         return result
+
     return timeit_wrapper

@@ -146,7 +146,9 @@ class WingPool:
                 system_total_velocities[wing_i.surface_name][i] += wing_freestream_velocities[i]
                 for wing_j in self.pool:
                     G = G_dict[wing_j.surface_name]
-                    ind_velocities_distr = self.system_induced_velocities[alpha][wing_i.surface_name][wing_j.surface_name][i]
+                    ind_velocities_distr = self.system_induced_velocities[alpha][wing_i.surface_name][
+                        wing_j.surface_name
+                    ][i]
                     for j, v_ij in enumerate(ind_velocities_distr):
                         system_total_velocities[wing_i.surface_name][i] += v_ij * G[j]
         return system_total_velocities

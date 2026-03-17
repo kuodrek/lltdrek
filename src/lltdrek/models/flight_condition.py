@@ -1,7 +1,10 @@
-from typing import Union, Sequence
-from lltdrek.models.types import AngleOfAttack
-from lltdrek.models.exceptions import AlphaNotFoundException
+from typing import Sequence, Union
+
 import numpy as np
+
+from lltdrek.models.exceptions import AlphaNotFoundException
+from lltdrek.models.types import AngleOfAttack
+
 
 class FlightCondition:
     """Represents atmospheric conditions (air speed, density, etc) for a given
@@ -21,6 +24,7 @@ class FlightCondition:
     :param ground_effect_check: If True, panel velocity calculation will take ground proximity into account
     :type ground_effect_check: bool = False
     """
+
     def __init__(
         self,
         V_inf: Union[float, int],
@@ -29,7 +33,7 @@ class FlightCondition:
         angles_of_attack: Sequence[AngleOfAttack],
         h: Union[float, int],
         ground_effect_check: bool = False,
-        angular_velocity: Sequence[float] = [0, 0, 0]
+        angular_velocity: Sequence[float] = [0, 0, 0],
     ):
         self.V_inf = V_inf
         self.nu = nu
@@ -37,14 +41,16 @@ class FlightCondition:
         self.angles_of_attack = np.unique(angles_of_attack)
         self.h = h
         self.ground_effect_check = ground_effect_check
-        self.v_inf_list = np.array([
-            (
-                np.cos(alpha * np.pi / 180),
-                0,
-                np.sin(alpha * np.pi / 180),
-            )
-            for alpha in self.angles_of_attack
-        ])
+        self.v_inf_list = np.array(
+            [
+                (
+                    np.cos(alpha * np.pi / 180),
+                    0,
+                    np.sin(alpha * np.pi / 180),
+                )
+                for alpha in self.angles_of_attack
+            ]
+        )
         self.angular_velocity = np.array(angular_velocity)
 
     def get_alpha_index(self, alpha: AngleOfAttack) -> int:
@@ -55,6 +61,16 @@ class FlightCondition:
 
     def __repr__(self):
         return "FlightCondition({}={}, {}={}, {}={}, {}={}, {}={}, {}={})".format(
-            "V_inf", self.V_inf, "nu", self.nu, "rho", self.rho, "angles_of_attack", self.angles_of_attack,
-            "h", self.h, "ground_effect_check", self.ground_effect_check
+            "V_inf",
+            self.V_inf,
+            "nu",
+            self.nu,
+            "rho",
+            self.rho,
+            "angles_of_attack",
+            self.angles_of_attack,
+            "h",
+            self.h,
+            "ground_effect_check",
+            self.ground_effect_check,
         )

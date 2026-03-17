@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import numpy as np
 
@@ -8,20 +8,22 @@ from lltdrek.models.simulation import SimulationResult
 from lltdrek.models.wingpool import WingPool
 from lltdrek.utils.lookup import get_linear_data_and_clmax
 
+
 class AerodynamicCenter:
     """Container class that contains results for `PostProcessing.get_aerodynamic_center` method
-    
+
     :param x_ac: Adimensional aerodynamic center position, measured by percentage of `c_ref`
     :type x_ac: float
     :param Cm_ac: Pitching moment value at aerodynamic center
     :type Cm_ac: float
-    :param Cm_alpha: Pitching moment slope.  
-        Value should be close to 0, based on the residual given to  
+    :param Cm_alpha: Pitching moment slope.
+        Value should be close to 0, based on the residual given to
         `PostProcessing.get_aerodynamic_center`, in case of convergence
     :type Cm_alpha: float
     :param n_iter: Number of iterations needed to find the aerodynamic center
     :type n_iter: int
     """
+
     def __init__(self, x_ac: float, Cm_ac: float, Cm_alpha: float, n_iter: int):
         self.x_ac = x_ac
         self.Cm_ac = Cm_ac
@@ -29,7 +31,10 @@ class AerodynamicCenter:
         self.n_iter = n_iter
 
     def __repr__(self):
-        return f"AerodynamicCenter(x_ac={self.x_ac}, Cm_ac={self.Cm_ac}, Cm_alpha={self.Cm_alpha}, n_iter={self.n_iter})"
+        return (
+            f"AerodynamicCenter(x_ac={self.x_ac}, Cm_ac={self.Cm_ac}, Cm_alpha={self.Cm_alpha}, n_iter={self.n_iter})"
+        )
+
 
 class ForceCoefficients:
     """Container class for Aerodynamic Force coefficients
@@ -41,6 +46,7 @@ class ForceCoefficients:
     :param CL: Lift Coefficient
     :type CL: float
     """
+
     def __init__(self, CD: float, CY: float, CL: float):
         self.CD = CD
         self.CY = CY
@@ -60,6 +66,7 @@ class MomentCoefficients:
     :param Cn: Yawing moment Coefficient
     :type Cn: float
     """
+
     def __init__(self, Cl: float, Cm: float, Cn: float):
         self.Cl = Cl
         self.Cm = Cm
@@ -82,6 +89,7 @@ class Coefficients:
     :param cl_distribution: Distribution of section lift coefficients for a wing_pool
     :type cl_distribution: dict
     """
+
     def __init__(self, force_coefficients, moment_coefficients, cl_distribution):
         self.forces = ForceCoefficients(*force_coefficients)
         self.moments = MomentCoefficients(*moment_coefficients)
@@ -93,8 +101,8 @@ class Coefficients:
 
 @dataclass
 class ProcessedSimulationResults:
-    """Container class returned by `PostProcessing.get_coefficients`. 
-    
+    """Container class returned by `PostProcessing.get_coefficients`.
+
     It returns simulation_result, global_coefficients and surface_coefficients for a given angle of attack
 
     :param simulation_result: Simulation results
@@ -104,6 +112,7 @@ class ProcessedSimulationResults:
     :param surface_coefficients: Individual aerodynamic coefficients of the wing pool
     :type surface_coefficients: dict[str, Coefficients]
     """
+
     simulation_result: SimulationResult
     global_coefficients: Coefficients
     surface_coefficients: dict[str, Coefficients]
@@ -226,7 +235,7 @@ class PostProcessing:
             processed_result = ProcessedSimulationResults(result, global_coefficients, surface_coefficients)
             processed_simulation_results.append(processed_result)
         return processed_simulation_results
-    
+
     @classmethod
     def get_aerodynamic_center(
         cls,
@@ -235,7 +244,7 @@ class PostProcessing:
         S_ref: Optional[float] = None,
         c_ref: Optional[float] = None,
         max_iter: int = 100,
-        residual: float = 1e-6
+        residual: float = 1e-6,
     ) -> AerodynamicCenter:
         """Tries to find aerodynamic center of a wing pool by using binary search method.
 
@@ -249,7 +258,7 @@ class PostProcessing:
 
         :param original_wing_pool: Input Wing Pool
         :type original_wing_pool: WingPool
-        :param simulation_results: List of simulation results 
+        :param simulation_results: List of simulation results
         :type simulation_results: list[SimulationResult]
         :param S_ref: Reference surface value
         :type S_ref: Optional[float]
@@ -262,17 +271,19 @@ class PostProcessing:
 
         :returns AerodynamicCenter:
         """
-        wing_pool = deepcopy(original_wing_pool) # Make a copy to avoid updating original object
+        wing_pool = deepcopy(original_wing_pool)  # Make a copy to avoid updating original object
         if np.any(wing_pool.flight_condition.angular_velocity != 0):
-            print("Warning: trying to find aerodynamic center with non-zero angular rates may result in inconsistent values")
-        
+            print(
+                "Warning: trying to find aerodynamic center with non-zero angular rates may result in inconsistent values"
+            )
+
         if not S_ref:
             S_ref = wing_pool.S_ref
         if not c_ref:
             c_ref = wing_pool.c_ref
 
         ac_min = min([wing.x_pos for wing in wing_pool.pool])
-        ac_max = max([wing.x_pos for wing in wing_pool.pool]+[c_ref])
+        ac_max = max([wing.x_pos for wing in wing_pool.pool] + [c_ref])
         ac_start = (ac_min + ac_max) / 2
 
         ac = ac_start
@@ -291,7 +302,7 @@ class PostProcessing:
             CM_values = [coef.global_coefficients.moments.Cm for coef in coefficients]
             CM_poly = np.polyfit(alpha_values, CM_values, 1)
 
-            Cm_alpha = CM_poly[0] # get angular coefficient, or A in y = Ax + b
+            Cm_alpha = CM_poly[0]  # get angular coefficient, or A in y = Ax + b
             if abs(Cm_alpha) <= residual or i == max_iter:
                 Cm_ac = CM_poly[1]
                 ac_check = True
