@@ -1,4 +1,5 @@
 import copy
+import logging
 from typing import Dict, List, Optional, Sequence
 
 import numpy as np
@@ -9,6 +10,7 @@ from new.aerodynamics.velocity import LoopsVelocityCalculator, NumpyVelocityCalc
 from new.geometry.wing import Wing
 
 _ALLOWED_VELOCITY = ("loops", "numpy")
+logger = logging.getLogger("lltdrek.system.WingPool")
 
 
 class WingPool:
@@ -194,7 +196,6 @@ class WingPool:
         reynolds_list = [float(re) for name in airfoil_names for re in self.airfoil_db.get_polar(name)]
 
         if min_cp_re < min(reynolds_list) or max_cp_re > max(reynolds_list):
-            print(
-                f"Warning: [{wing.surface_name}] Detected reynolds out of airfoil data bounds."
-                " Results may be inaccurate."
+            logger.warning(
+                f"[{wing.surface_name}] Detected reynolds out of airfoil data bounds. Results may be inaccurate."
             )

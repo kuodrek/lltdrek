@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -34,14 +35,13 @@ class SimulationRunner(ABC):
         damping_factor: float,
         max_iter: int,
         max_residual: float,
-        show_logs: bool,
         warm_start: bool,
     ) -> None:
         self.damping_factor = damping_factor
         self.max_iter = max_iter
         self.max_residual = max_residual
-        self.show_logs = show_logs
         self.warm_start = warm_start
+        self.logger = logging.getLogger(f"lltdrek.solver.{type(self).__name__}")
 
     @abstractmethod
     def run(self, wing_pool: WingPool) -> list[SimulationResult]:

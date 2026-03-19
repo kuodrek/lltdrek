@@ -29,7 +29,6 @@ class Simulation:
         damping_factor: float = 0.7,
         max_iter: int = 150,
         max_residual: float = 1e-3,
-        show_logs: bool = True,
     ) -> None:
         if equations not in _ALLOWED_EQUATIONS:
             raise ValueError(f"Invalid equations '{equations}'. Choose from {_ALLOWED_EQUATIONS}.")
@@ -42,7 +41,6 @@ class Simulation:
         self.damping_factor = damping_factor
         self.max_iter = max_iter
         self.max_residual = max_residual
-        self.show_logs = show_logs
 
         self._runner: SimulationRunner = self._build_runner()
 
@@ -51,7 +49,6 @@ class Simulation:
             damping_factor=self.damping_factor,
             max_iter=self.max_iter,
             max_residual=self.max_residual,
-            show_logs=self.show_logs,
             warm_start=self.warm_start,
         )
         if self.equations == "linear":
