@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from new.aerodynamics.airfoil_database import AirfoilDatabase
@@ -22,6 +23,15 @@ class StubAirfoilDB(AirfoilDatabase):
 
     def __contains__(self, name: str) -> bool:
         return True
+
+    def lookup_cl(self, airfoil: str, reynolds: float, aoa_deg: float) -> float:
+        return 0.0
+
+    def get_linear_data(self, airfoil: str, reynolds: float, aoa_min: float = 0.0, aoa_max: float = 8.0) -> dict:
+        return {"cl_alpha": 0.1, "cl0": 0.0, "cm0": 0.0, "clmax": 1.0}
+
+    def get_dat(self, name: str) -> np.ndarray:
+        return np.array([[0.0, 0.0], [1.0, 0.0]])
 
 
 @pytest.fixture
