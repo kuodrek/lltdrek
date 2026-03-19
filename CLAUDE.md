@@ -60,18 +60,24 @@ pre-commit run --all-files
 ```
 src/new/
 ├── aerodynamics/
-│   └── airfoil_database.py     # AirfoilDatabase ABC
+│   ├── airfoil_database.py         # AirfoilDatabase ABC
+│   ├── polars_airfoil_database.py  # PolarsAirfoilDatabase — concrete implementation
+│   ├── flight_condition.py         # FlightCondition
+│   └── parsers/
+│       ├── base.py                 # PolarParser ABC + ParseResult dataclass
+│       ├── txt_parser.py           # TxtParser — parses .txt polar files (RE blocks)
+│       └── csv_parser.py           # CsvParser — stub
 ├── geometry/
-│   ├── wing.py                 # Wing ABC (lifecycle + properties)
-│   └── wing_llt.py             # WingLLT — concrete LLT implementation
+│   ├── wing.py                     # Wing ABC (lifecycle + properties)
+│   └── wing_llt.py                 # WingLLT — concrete LLT implementation
 ├── system/
-│   └── wing_pool.py            # WingPool — assembles wings + flight condition + airfoil DB
+│   └── wing_pool.py                # WingPool — assembles wings + flight condition + airfoil DB
 └── solver/
-    ├── simulation.py           # Simulation — user-facing factory (equations, implementation, warm_start)
-    ├── simulation_runner.py    # SimulationRunner ABC + SimulationResult dataclass
-    ├── linear_runner.py        # LinearRunner — one-shot linear solve (stub)
-    ├── nonlinear_loops_runner.py  # NonlinearLoopsRunner — Newton-Raphson, for-loops (stub)
-    └── nonlinear_numpy_runner.py  # NonlinearNumpyRunner — Newton-Raphson, vectorized (stub)
+    ├── simulation.py               # Simulation — user-facing factory (equations, implementation, warm_start)
+    ├── simulation_runner.py        # SimulationRunner ABC + SimulationResult dataclass
+    ├── linear_runner.py            # LinearRunner — one-shot linear solve (stub)
+    ├── nonlinear_loops_runner.py   # NonlinearLoopsRunner — Newton-Raphson, for-loops (stub)
+    └── nonlinear_numpy_runner.py   # NonlinearNumpyRunner — Newton-Raphson, vectorized (stub)
 ```
 
 ### `WingPool` — `src/new/system/wing_pool.py`
@@ -91,16 +97,29 @@ Three orthogonal params select the runner internally:
 
 `warm_start: bool` — nonlinear only; uses linear solution as initial G per alpha.
 
+### `AirfoilDatabase` — `src/new/aerodynamics/`
+
+`PolarsAirfoilDatabase` stores all polar data in a single Polars DataFrame with schema
+`[airfoil, reynolds, aoa, cl, cm0]`. Geometry (.dat) coordinates are stored separately.
+
+- `from_folder(path, format="txt")` — loads all matching polar files + `.dat` files
+- `lookup_cl(airfoil, reynolds, aoa_deg)` — bilinear interpolation (Reynolds + AOA); replaces legacy `cl_lookup`
+- `get_linear_data(airfoil, reynolds, aoa_min, aoa_max)` — lazy, cached `{cl_alpha, cl0, cm0, clmax}`; replaces legacy `get_linear_data_and_clmax`
+- `get_dat(name)` — returns (N,2) geometry array
+- `get_polar(name)` — returns `{reynolds_float: {cm0, clmax}}`; used by `WingPool._check_reynolds_bounds`
+
+**Parsers** (`src/new/aerodynamics/parsers/`) use the Strategy Pattern — each parser converts one file format into a `ParseResult(airfoil_name, df)`. Adding a new format (xfoil, csv) requires only a new parser class.
+
+**Airfoil blending** (merge_parameter for panels spanning two airfoils) is a panel-level concern for the solver — not handled inside `AirfoilDatabase`. The solver calls `lookup_cl` twice and blends: `cl = cl_root * (1 - merge) + cl_tip * merge`.
+
 ### Still pending
 
-- `AirfoilDatabase` concrete implementation (port from `load_folder` + polar lookup in legacy)
-- `FlightCondition` in `src/new/aerodynamics/`
+- `XfoilParser` — xfoil polar output format (stub exists as `CsvParser`)
 - Velocity utility functions (port from `src/lltdrek/utils/`)
 - `NonlinearLoopsRunner.run()` implementation (port from `src/lltdrek/models/simulation.py`)
 - `NonlinearNumpyRunner.run()` implementation (new, vectorized)
 - `PostProcessing` equivalent
 - Wing mirroring logic in `WingPool`
-- Airfoil database validation in `WingPool`
 
 ---
 
