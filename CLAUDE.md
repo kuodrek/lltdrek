@@ -14,27 +14,8 @@ The codebase is being redesigned. **All new work happens in `src/new/`.** The le
 
 ## Commands
 
-**Install for development:**
-```bash
-pip install -e ".[dev]"
-# or just install dependencies:
-pip install -r requirements.txt
-```
-
-**Run tests:**
-```bash
-pytest
-# single test file:
-pytest tests/integration/validation/test_validation_1.py
-```
-
-**Lint / format (via pre-commit):**
-```bash
-pre-commit run --all-files
-```
-- Formatter: `black` with `--line-length=120`
-- Import sorter: `isort`
-- Linter: `flake8` with `--max-line-length=120 --ignore=E731`
+See `Makefile` — `make install`, `make test`, `make lint`.
+Linting: black/isort/flake8 via pre-commit (`--line-length=120`, `--ignore=E731`).
 
 ---
 
@@ -54,6 +35,7 @@ pre-commit run --all-files
 - **Orthogonal parameters.** Each parameter on a class controls one independent axis of behavior. Do not combine axes into a single flat enum.
 - **Strategy Pattern for swappable implementations.** The user-facing class (e.g., `Simulation`) is a factory that selects and holds the right strategy.
 - **`WingPool` owns the assembly lifecycle.** Wings are passive geometry objects; they do not know about flight conditions or airfoil databases until `WingPool` attaches that data.
+- **NumPy type boundary at the public surface.** Private methods may return `np.float64` and other numpy scalars freely. Public methods cast to Python primitives (`float`, `int`) before returning. This avoids redundant casts inside internal computation chains and keeps the conversion cost at the API boundary where it matters (JSON serialization, `isinstance` checks, etc.).
 
 ### Current structure
 
@@ -111,15 +93,6 @@ Three orthogonal params select the runner internally:
 **Parsers** (`src/new/aerodynamics/parsers/`) use the Strategy Pattern — each parser converts one file format into a `ParseResult(airfoil_name, df)`. Adding a new format (xfoil, csv) requires only a new parser class.
 
 **Airfoil blending** (merge_parameter for panels spanning two airfoils) is a panel-level concern for the solver — not handled inside `AirfoilDatabase`. The solver calls `lookup_cl` twice and blends: `cl = cl_root * (1 - merge) + cl_tip * merge`.
-
-### Still pending
-
-- `XfoilParser` — xfoil polar output format (stub exists as `CsvParser`)
-- Velocity utility functions (port from `src/lltdrek/utils/`)
-- `NonlinearLoopsRunner.run()` implementation (port from `src/lltdrek/models/simulation.py`)
-- `NonlinearNumpyRunner.run()` implementation (new, vectorized)
-- `PostProcessing` equivalent
-- Wing mirroring logic in `WingPool`
 
 ---
 
