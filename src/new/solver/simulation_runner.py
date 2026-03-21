@@ -12,15 +12,15 @@ class SimulationResult:
     """Result of a simulation for a single angle of attack.
 
     :param alpha: Angle of attack.
-    :param G_solution: Dimensionless vortex strength per panel, keyed by surface name.
+    :param G: Dimensionless vortex strength per panel, keyed by surface name.
     :param residual: Residual array at convergence (or at max_iter).
-    :param convergence_check: True if the solver converged within max_iter.
+    :param converged: True if the solver converged within max_iter.
     """
 
     alpha: float
-    G_solution: dict
+    G: dict[str, np.ndarray]
     residual: np.ndarray
-    convergence_check: bool
+    converged: bool
 
 
 class SimulationRunner(ABC):
