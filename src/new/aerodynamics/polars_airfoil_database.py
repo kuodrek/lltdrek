@@ -98,9 +98,9 @@ class PolarsAirfoilDatabase(AirfoilDatabase):
         re_arr = self._get_reynolds_list(airfoil)
 
         if reynolds <= re_arr[0]:
-            return self._interpolate_aoa(airfoil, re_arr[0], aoa_deg)
+            return float(self._interpolate_aoa(airfoil, re_arr[0], aoa_deg))
         if reynolds >= re_arr[-1]:
-            return self._interpolate_aoa(airfoil, re_arr[-1], aoa_deg)
+            return float(self._interpolate_aoa(airfoil, re_arr[-1], aoa_deg))
 
         idx = int(np.searchsorted(re_arr, reynolds, side="right")) - 1
         re_lo, re_hi = re_arr[idx], re_arr[idx + 1]
@@ -114,7 +114,7 @@ class PolarsAirfoilDatabase(AirfoilDatabase):
         if cache_key in self._linear_cache:
             return self._linear_cache[cache_key]
 
-        result = self._compute_linear_data(airfoil, reynolds, aoa_min, aoa_max)
+        result = {k: float(v) for k, v in self._compute_linear_data(airfoil, reynolds, aoa_min, aoa_max).items()}
         self._linear_cache[cache_key] = result
         return result
 
@@ -150,9 +150,9 @@ class PolarsAirfoilDatabase(AirfoilDatabase):
             self._cl_data_cache[key] = subset.to_numpy()
         return self._cl_data_cache[key]
 
-    def _interpolate_aoa(self, airfoil: str, reynolds: float, aoa_deg: float) -> float:
+    def _interpolate_aoa(self, airfoil: str, reynolds: float, aoa_deg: float) -> np.float64:
         cl_data = self._get_cl_data(airfoil, reynolds)
-        return float(np.interp(aoa_deg, cl_data[:, 0], cl_data[:, 1]))
+        return np.interp(aoa_deg, cl_data[:, 0], cl_data[:, 1])
 
     def _compute_linear_data_at_reynolds(self, airfoil: str, reynolds: float, aoa_min: float, aoa_max: float) -> dict:
         subset = self._df.filter(
@@ -165,9 +165,9 @@ class PolarsAirfoilDatabase(AirfoilDatabase):
         cl_arr = subset["cl"].to_numpy()
         coefs = np.polyfit(aoa_arr, cl_arr, 1)
 
-        cm0 = float(self._df.filter((pl.col("airfoil") == airfoil) & (pl.col("reynolds") == reynolds))["cm0"].first())
-        clmax = float(self._df.filter((pl.col("airfoil") == airfoil) & (pl.col("reynolds") == reynolds))["cl"].max())
-        return {"cl_alpha": float(coefs[0]), "cl0": float(coefs[1]), "cm0": cm0, "clmax": clmax}
+        cm0 = self._df.filter((pl.col("airfoil") == airfoil) & (pl.col("reynolds") == reynolds))["cm0"].first()
+        clmax = self._df.filter((pl.col("airfoil") == airfoil) & (pl.col("reynolds") == reynolds))["cl"].max()
+        return {"cl_alpha": coefs[0], "cl0": coefs[1], "cm0": cm0, "clmax": clmax}
 
     def _compute_linear_data(self, airfoil: str, reynolds: float, aoa_min: float, aoa_max: float) -> dict:
         re_arr = self._get_reynolds_list(airfoil)
