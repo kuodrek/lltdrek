@@ -1,4 +1,4 @@
-from lltdrek import Wing, FlightCondition, WingPool, Simulation, PostProcessing, load_folder
+from lltdrek import FlightCondition, PostProcessing, Simulation, Wing, WingPool, load_folder
 
 airfoils_data, _ = load_folder("sample_airfoils")
 print(airfoils_data)
@@ -30,12 +30,12 @@ wing.setup_airfoil_data(flight_condition, airfoils_data)  # Assign airfoil data 
 wing_pool = WingPool(wing_list=[wing], flight_condition=flight_condition)
 
 simulation = Simulation(
-    damping_factor = 0.5,
-    max_iter = 100,
-    max_residual = 1e-4,
-    linear_check = False,
-    show_logs = False,
-    simulation_mode = "linear_first" # Solves linear version of equations before doing non linear simulation to speed up process
+    damping_factor=0.5,
+    max_iter=100,
+    max_residual=1e-4,
+    linear_check=False,
+    show_logs=False,
+    simulation_mode="linear_first",  # Solves linear version of equations before doing non linear simulation to speed up process
 )
 
 # Run simulation

@@ -30,3 +30,13 @@ dev = ["pytest", "pytest-cov"]
 
 [project.urls]
 "Homepage" = "https://github.com/kuodrek/lltdrek"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E731"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lltdrek", "new"]
