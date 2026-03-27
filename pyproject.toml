@@ -1,35 +1,36 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "lltdrek"
 version = "1.2.0"
-authors = [
-  { name="Luis Kuodrek", email="kuodrek@gmail.com" },
-]
 description = "Package description"
+authors = ["Luis Kuodrek <kuodrek@gmail.com>"]
 readme = "README.md"
-requires-python = ">=3.10"
+homepage = "https://github.com/kuodrek/lltdrek"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dynamic = ["dependencies"]
+packages = [{include = "lltdrek", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+matplotlib = "*"
+numpy = ">=1.26.4"
+polars = ">=1.0.0"
+scipy = ">=1.12.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-cov = "*"
+pre-commit = "*"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
-
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-
-[project.optional-dependencies]
-dev = ["pytest", "pytest-cov"]
-
-[project.urls]
-"Homepage" = "https://github.com/kuodrek/lltdrek"
 
 [tool.ruff]
 line-length = 120
