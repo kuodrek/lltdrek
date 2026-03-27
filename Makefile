@@ -1,10 +1,10 @@
 .PHONY: install test lint
 
 install:
-	pip install -e ".[dev]"
+	poetry install
 
 test:
-	pytest
+	poetry run pytest
 
 lint:
-	pre-commit run --all-files
+	poetry run pre-commit run --all-files
