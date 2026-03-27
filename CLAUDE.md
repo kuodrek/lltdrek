@@ -14,8 +14,14 @@ The codebase is being redesigned. **All new work happens in `src/new/`.** The le
 
 ## Commands
 
-See `Makefile` — `make install`, `make test`, `make lint`.
-Linting: black/isort/flake8 via pre-commit (`--line-length=120`, `--ignore=E731`).
+This project uses **Poetry** for dependency management. Install Poetry before setting up a virtual environment:
+
+```bash
+pip install poetry
+```
+
+See `Makefile` — `make install` (`poetry install`), `make test` (`poetry run pytest`), `make lint` (`poetry run pre-commit run --all-files`).
+Linting: black/ruff via pre-commit (`--line-length=120`, `--ignore=E731`).
 
 ---
 
